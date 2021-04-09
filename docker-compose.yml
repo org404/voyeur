@@ -1,0 +1,67 @@
+version: "3.7"
+services:
+  api-db:
+    container_name: voyeur-api-db
+    image: voyeur-api-db
+    restart: always
+    build: postgres
+    environment:
+      - POSTGRES_USER=morphi
+      - POSTGRES_PASSWORD=hackme
+      - POSTGRES_DB=storage
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U morphi -d storage"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    volumes:
+      - data:/var/lib/postgresql/data
+
+  api:
+    container_name: voyeur-api
+    image: voyeur-api
+    restart: always
+    build: api
+    networks:
+      - default
+      - caddynet
+    depends_on:
+      - api-db
+
+  web:
+    container_name: voyeur-jupyter
+    image: voyeur-jupyter
+    restart: always
+    build: api
+    networks:
+      - caddynet
+    volumes:
+      - notebooks:/home/jovyan/work
+    depends_on:
+      - api
+
+  caddy:
+    container_name: voyeur-caddy
+    image: voyeur-caddy
+    restart: always
+    build: caddy
+    ports:
+      - 80:80
+      - 443:443
+    networks:
+      - caddynet
+    volumes:
+      - caddy_data:/data
+    depends_on:
+      - api
+      - web
+
+volumes:
+  data:
+  notebooks:
+  caddy_data:
+
+networks:
+  caddynet:
+    name: caddynet
+

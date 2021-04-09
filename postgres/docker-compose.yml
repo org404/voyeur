@@ -1,0 +1,21 @@
+# Development config for postgres
+version: "3.7"
+services:
+  db:
+    container_name: api-db
+    image: api-db
+    restart: always
+    build: .
+    environment:
+      - POSTGRES_USER=morphi
+      - POSTGRES_PASSWORD=hackme
+      - POSTGRES_DB=storage
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U morphi -d storage"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    # Allow connection from host
+    ports:
+      - 5432:5432
+

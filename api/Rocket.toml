@@ -1,0 +1,13 @@
+[global]
+# default port is 8000
+address = "0.0.0.0"
+
+[default.databases]
+storage = { url = "postgres://morphi:hackme@localhost:5432/storage" }
+
+# Release config
+[release]
+port = 8080
+
+[release.databases]
+storage = { url = "postgres://morphi:hackme@voyeur-api-db:5432/storage" }

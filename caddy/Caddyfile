@@ -1,0 +1,29 @@
+# Global config
+{
+	http_port 80
+	https_port 443
+	experimental_http3
+}
+
+(securiti) {
+    header / {
+        Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+        X-XSS-Protection "1; mode=block"
+        X-Content-Type-Options "nosniff"
+        X-Frame-Options "SAMEORIGIN"
+        Referrer-Policy "strict-origin"
+        Content-Security-Policy "upgrade-insecure-requests"
+        Expect-CT "max-age=604800, enforce"
+    }
+}
+
+jupyter.example.com {
+    import securiti
+    reverse_proxy voyeur-jupyter:8081
+}
+
+voyeur.example.com {
+    import securiti
+    reverse_proxy voyeur-api:8080
+}
+
