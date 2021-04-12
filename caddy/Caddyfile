@@ -1,8 +1,7 @@
 # Global config
 {
-	http_port 80
-	https_port 443
-	experimental_http3
+    http_port 80
+    https_port 443
 }
 
 (securiti) {
@@ -17,13 +16,21 @@
     }
 }
 
-jupyter.example.com {
+(bauth) {
+    basicauth {
+        test JDJhJDE0JDk3T3p6endQTUlmd1M2TmtnZUQuMU9oeURqd1NyYnlCc2pwNHF5bTJXSURWUEJ6bEg3bWhl
+    }
+}
+
+jupyter.catdrew.dev {
     import securiti
+    import bauth
     reverse_proxy voyeur-jupyter:8081
 }
 
-voyeur.example.com {
+voyeur.catdrew.dev {
     import securiti
+    import bauth
     reverse_proxy voyeur-api:8080
 }
 
