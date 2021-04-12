@@ -5,16 +5,7 @@ use crate::pagination::PageSize;
 use crate::sql::SqlItem;
 
 
-#[get("/", rank = 1)]
-pub async fn get_all_entries(namespace: Namespace, conn: ApiDatabase) -> JsonValue {
-    json!({
-        "code": "no_message",
-        "data": conn.run(|c| Entry::get_all(c, namespace.0)).await
-    })
-}
-
-
-#[get("/?<page>", rank = 2)]
+#[get("/?<page>", rank = 1)]
 pub async fn get_paginated_entries(namespace: Namespace, page: u32, page_size: PageSize, conn: ApiDatabase) -> JsonValue {
     json!({
         "msg_code": "no_message",
@@ -22,6 +13,15 @@ pub async fn get_paginated_entries(namespace: Namespace, page: u32, page_size: P
         "page_number": page.clone(),
         "page_size": page_size.0.clone(),
         "data": conn.run(move |c| Entry::get_page(c, namespace.0, page, page_size.0)).await
+    })
+}
+
+
+#[get("/", rank = 2)]
+pub async fn get_all_entries(namespace: Namespace, conn: ApiDatabase) -> JsonValue {
+    json!({
+        "code": "no_message",
+        "data": conn.run(|c| Entry::get_all(c, namespace.0)).await
     })
 }
 

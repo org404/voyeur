@@ -1,22 +1,22 @@
 # Step 1: Compute a recipe file
 FROM rustlang/rust:nightly-slim as planner
-WORKDIR app
+WORKDIR /app
 RUN cargo install cargo-chef
 COPY src src
 COPY Cargo.toml .
-COPY Cargo.lock .
+# COPY Cargo.lock .
 RUN cargo chef prepare --recipe-path recipe.json
 
 # Step 2: Cache project dependencies
 FROM rustlang/rust:nightly-slim as cacher
-WORKDIR app
+WORKDIR /app
 RUN cargo install cargo-chef
 COPY --from=planner /app/recipe.json recipe.json
 RUN cargo chef cook --release --recipe-path recipe.json
 
 # Step 3: Build the binary
 FROM rustlang/rust:nightly-slim as builder
-WORKDIR app
+WORKDIR /app
 # Copy over the cached dependencies from above
 COPY --from=cacher /app/target target
 COPY --from=cacher /usr/local/cargo /usr/local/cargo
@@ -33,5 +33,7 @@ COPY --from=builder /app/target/release/api /app
 COPY Rocket.toml .
 ENTRYPOINT ["./api"]
 
-HEALTHCHECK --interval=10s --timeout=1s \
-  CMD curl http://localhost:8080/api/v1/health
+# This would be awesome, but this is will force us to install
+# curl into the container. Meh.
+#HEALTHCHECK --interval=10s --timeout=1s --retries=5 \
+#  CMD curl http://localhost:8080/api/v1/health

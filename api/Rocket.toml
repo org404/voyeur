@@ -1,6 +1,8 @@
 [global]
 # default port is 8000
 address = "0.0.0.0"
+# Set hard limit to the maximum size of the data. (Further configuration is available via headers).
+limits = { json = "100MiB" }
 
 [default.databases]
 storage = { url = "postgres://morphi:hackme@localhost:5432/storage" }

@@ -13,6 +13,7 @@ mod pagination;
 
 #[launch]
 fn rocket() -> rocket::Rocket {
+    println!("Voyeur is starting..");
     rocket::ignite()
         .mount("/api/v1/logs", routes![
             interface::handle_namespace_errors,
