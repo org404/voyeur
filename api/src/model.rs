@@ -2,7 +2,8 @@ use rocket::{http::{Status, ContentType}, Request, Data};
 use rocket::data::{Outcome, FromData, ToByteUnit};
 use rocket_contrib::databases::postgres;
 use serde::{Serialize, Deserialize};
-use serde_json::from_str;
+use serde_json::{from_str, Value};
+use serde_json::ser::to_string;
 use crate::sql::SqlItem;
 
 
@@ -20,7 +21,7 @@ pub struct Entry {
     #[serde(skip_deserializing)]
     pub id:        u32,
     pub namespace: String,
-    pub content:   String,
+    pub content:   Value,
 }
 
 
@@ -29,7 +30,7 @@ impl SqlItem for Entry {
         Self {
             id:        row.get::<_, i32>("id") as u32,
             namespace: row.get("namespace"),
-            content:   row.get("content"),
+            content:   from_str::<Value>(&row.get::<_, String>("content")).unwrap(),
         }
     }
 
@@ -59,7 +60,7 @@ impl SqlItem for Entry {
     fn insert(&self, c: &mut postgres::Client) -> u32 {
         c.query_one(
             "INSERT INTO entries (namespace, content) VALUES ($1, $2) RETURNING id",
-            &[&self.namespace, &self.content]
+            &[&self.namespace, &to_string(&self.content).unwrap()]
         )
         .expect("Failed to insert item!")
         .get::<_, i32>("id") as u32
@@ -69,7 +70,7 @@ impl SqlItem for Entry {
         c.query_one(
             "INSERT INTO entries (id, namespace, content) VALUES ($1, $2, $3) ON CONFLICT (id) \
             DO UPDATE SET namespace = EXCLUDED.namespace, content = EXCLUDED.content RETURNING id",
-            &[&(id as i32), &self.namespace, &self.content]
+            &[&(id as i32), &self.namespace, &to_string(&self.content).unwrap()]
         )
         .unwrap().get::<_, i32>("id") as u32
     }
