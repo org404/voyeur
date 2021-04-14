@@ -8,7 +8,7 @@ use crate::sql::SqlItem;
 #[get("/?<page>", rank = 1)]
 pub async fn get_paginated_entries(namespace: Namespace, page: u32, page_size: PageSize, conn: ApiDatabase) -> JsonValue {
     json!({
-        "msg_code": "no_message",
+        "code": "no_message",
         "namespace": &namespace.0,
         "page_number": page.clone(),
         "page_size": page_size.0.clone(),
@@ -50,7 +50,7 @@ pub fn handle_namespace_errors(namespace: BadNamespace) -> JsonValue {
 #[post("/", format = "application/json", data = "<entry>", rank = 1)]
 pub async fn create_one_entry(entry: Entry, conn: ApiDatabase) -> JsonValue {
     json!({
-        "msg_code": "info_one_item_ok",
+        "code": "info_one_item_ok",
         "message": "Successfully created new entry!",
         "item_id": conn.run(move |c| entry.insert(c)).await
     })
@@ -60,7 +60,7 @@ pub async fn create_one_entry(entry: Entry, conn: ApiDatabase) -> JsonValue {
 #[post("/", format = "application/json", data = "<entries>", rank = 2)]
 pub async fn create_many_entries(entries: Json<Vec<Entry>>, conn: ApiDatabase) -> JsonValue {
     json!({
-        "msg_code": "info_many_items_ok",
+        "code": "info_many_items_ok",
         "message": "Successfully created multiple entries!",
         "item_ids": conn.run(
             |c| entries.into_inner()
@@ -75,7 +75,7 @@ pub async fn create_many_entries(entries: Json<Vec<Entry>>, conn: ApiDatabase) -
 #[put("/<id>", format = "application/json", data = "<entry>")]
 pub async fn update_entry_by_id(id: u32, entry: Entry, conn: ApiDatabase) -> JsonValue {
     json!({
-        "msg_code": "info_item_put_ok",
+        "code": "info_item_put_ok",
         "message": "Successfully updated/created entry!",
         "item_id": conn.run(move |c| entry.put(c, id)).await
     })

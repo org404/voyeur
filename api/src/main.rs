@@ -6,8 +6,8 @@
 mod sql;
 mod model;
 mod health;
+mod entries;
 mod namespace;
-mod interface;
 mod pagination;
 
 
@@ -15,14 +15,14 @@ mod pagination;
 fn rocket() -> rocket::Rocket {
     println!("Voyeur is starting..");
     rocket::ignite()
-        .mount("/api/v1/logs", routes![
-            interface::handle_namespace_errors,
-            interface::get_all_entries,
-            interface::get_paginated_entries,
-            interface::create_one_entry,
-            interface::create_many_entries,
-            interface::update_entry_by_id,
-            interface::delete_all_entries
+        .mount("/api/v1/entries", routes![
+            entries::handle_namespace_errors,
+            entries::get_all_entries,
+            entries::get_paginated_entries,
+            entries::create_one_entry,
+            entries::create_many_entries,
+            entries::update_entry_by_id,
+            entries::delete_all_entries
         ])
         .mount("/api/v1/health", routes![
             health::health_check_handler
