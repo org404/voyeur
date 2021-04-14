@@ -2,6 +2,7 @@ use crate::namespace::{Namespace, BadNamespace};
 use rocket_contrib::json::{Json, JsonValue};
 use crate::model::{ApiDatabase, Entry};
 use crate::pagination::PageSize;
+use crate::responders::Error;
 use crate::sql::SqlItem;
 
 
@@ -28,21 +29,21 @@ pub async fn get_all_entries(namespace: Namespace, conn: ApiDatabase) -> JsonVal
 
 // Error handler for bad namespace value
 #[get("/", rank = 3)]
-pub fn handle_namespace_errors(namespace: BadNamespace) -> JsonValue {
+pub fn handle_namespace_errors(namespace: BadNamespace) -> Error {
     match namespace.0 {
-        Some(v) if v.is_empty() => json!({
+        Some(v) if v.is_empty() => Error::BadRequest(json!({
             "code":    "err_namespace_empty",
             "message": "You have to provide 'X-Namespace' header or 'namespace' URL argument with request!",
-        }),
-        Some(v) => json!({
+        })),
+        Some(v) => Error::BadRequest(json!({
             "code":      "err_namespace_long",
             "message":   format!("Provided namespace value is too big (max is 64 characters, received {})!", v.len()),
             "namespace": v,
-        }),
-        None => json!({
+        })),
+        None => Error::BadRequest(json!({
             "code":    "err_namespace_empty",
             "message": "You have to provide 'X-Namespace' header or 'namespace' URL argument with request!",
-        })
+        }))
     }
 }
 

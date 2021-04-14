@@ -9,6 +9,7 @@ mod health;
 mod entries;
 mod namespace;
 mod pagination;
+mod responders;
 
 
 #[launch]
