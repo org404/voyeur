@@ -45,11 +45,11 @@ impl SqlItem for Entry {
         .collect()
     }
 
-    fn get_page(c: &mut postgres::Client, namespace: String, page: u32, page_size: u32) -> Vec<Self> {
+    fn get_page(c: &mut postgres::Client, namespace: String, page: u32, page_size: u16) -> Vec<Self> {
         c.query(
             "SELECT * FROM entries WHERE namespace = $1 \
              ORDER BY id ASC LIMIT $2 OFFSET $3",
-            &[&namespace, &(page_size as i64), &((page * page_size) as i64)]
+            &[&namespace, &(page_size as i64), &(page as i64 * page_size as i64)]
         )
         .unwrap()
         .iter()

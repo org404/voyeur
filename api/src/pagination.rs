@@ -3,11 +3,11 @@ use rocket::http::Status;
 use serde::Serialize;
 
 
-static DEFAULT_PAGE_SIZE: u32 = 25;
+static DEFAULT_PAGE_SIZE: u16 = 25;
 
 
 #[derive(Debug, Clone, Serialize)]
-pub struct PageSize(pub u32);
+pub struct PageSize(pub u16);
 
 
 #[derive(Debug)]
@@ -24,7 +24,7 @@ impl<'r> FromRequest<'r> for PageSize {
     async fn from_request(req: &'r Request<'_>) -> Outcome<Self, Self::Error> {
         // First we check for header value.
         match req.headers().get_one("X-Page-Size") {
-            Some(v) => match v.parse::<u32>() {
+            Some(v) => match v.parse::<u16>() {
                 Ok(page_size) => match page_size {
                     // Forbid 0 page size.
                     n if n > 0 => Outcome::Success(PageSize(n)),
@@ -37,7 +37,7 @@ impl<'r> FromRequest<'r> for PageSize {
                 Err(_) => Outcome::Failure((Status::PreconditionFailed, HeaderError::PageSizeBad))
             },
             // Fallback to URL arguments.
-            None => match req.query_value::<u32>("page_size") {
+            None => match req.query_value::<u16>("page_size") {
                 // This returns some result (of parsed value).
                 Some(unparsed_value) => match unparsed_value {
                     Ok(page_size) => match page_size {

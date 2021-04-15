@@ -22,6 +22,7 @@ pub async fn get_paginated_entries(namespace: Namespace, page: u32, page_size: P
 pub async fn get_all_entries(namespace: Namespace, conn: ApiDatabase) -> JsonValue {
     json!({
         "code": "no_message",
+        "namespace": &namespace.0,
         "data": conn.run(|c| Entry::get_all(c, namespace.0)).await
     })
 }
@@ -33,7 +34,7 @@ pub fn handle_namespace_errors(namespace: BadNamespace) -> Error {
     match namespace.0 {
         Some(v) if v.is_empty() => Error::BadRequest(json!({
             "code":    "err_namespace_empty",
-            "message": "You have to provide 'X-Namespace' header or 'namespace' URL argument with request!",
+            "message": "You must provide 'X-Namespace' header or 'namespace' URL argument with request!",
         })),
         Some(v) => Error::BadRequest(json!({
             "code":      "err_namespace_long",
@@ -42,7 +43,7 @@ pub fn handle_namespace_errors(namespace: BadNamespace) -> Error {
         })),
         None => Error::BadRequest(json!({
             "code":    "err_namespace_empty",
-            "message": "You have to provide 'X-Namespace' header or 'namespace' URL argument with request!",
+            "message": "You must provide 'X-Namespace' header or 'namespace' URL argument with request!",
         }))
     }
 }

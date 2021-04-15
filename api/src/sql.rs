@@ -8,7 +8,7 @@ pub trait SqlItem {
     // Query all objects from database (parsed)
     fn get_all(c: &mut postgres::Client, namespace: String) -> Vec<Self> where Self: Sized;
     // Query certain amount of object from database (parsed)
-    fn get_page(c: &mut postgres::Client, namespace: String, page: u32, page_size: u32) -> Vec<Self> where Self: Sized;
+    fn get_page(c: &mut postgres::Client, namespace: String, page: u32, page_size: u16) -> Vec<Self> where Self: Sized;
 
     // Insert item into database, returns id
     fn insert(&self, c: &mut postgres::Client) -> u32;
