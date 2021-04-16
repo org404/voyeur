@@ -13,9 +13,9 @@ mod responders;
 
 
 #[launch]
-fn rocket() -> rocket::Rocket {
-    println!("Voyeur is starting..");
-    rocket::ignite()
+fn rocket() -> rocket::Rocket<rocket::Build> {
+    #[cfg(not(debug_assertions))] println!("Voyeur is starting..");
+    rocket::build()
         .mount("/api/v1/entries", routes![
             entries::handle_namespace_errors,
             entries::get_all_entries,
