@@ -3,7 +3,6 @@ use rocket_contrib::json::{Json, JsonValue};
 use crate::model::{ApiDatabase, Entry};
 use crate::pagination::PageSize;
 use crate::responders::Error;
-use crate::sql::SqlItem;
 
 
 #[get("/?<page>", rank = 1)]
@@ -13,7 +12,9 @@ pub async fn get_paginated_entries(namespace: Namespace, page: u32, page_size: P
         "namespace": &namespace.0,
         "page_number": page.clone(),
         "page_size": page_size.0.clone(),
-        "data": conn.run(move |c| Entry::get_page(c, namespace.0, page, page_size.0)).await
+        "data": conn.run(
+            move |c| Entry::get_page(c, namespace.0, page, page_size.0)
+        ).await
     })
 }
 
@@ -50,24 +51,24 @@ pub fn handle_namespace_errors(namespace: BadNamespace) -> Error {
 
 
 #[post("/", format = "application/json", data = "<entry>", rank = 1)]
-pub async fn create_one_entry(entry: Entry, conn: ApiDatabase) -> JsonValue {
+pub async fn create_one_entry(namespace: Namespace, entry: Entry, conn: ApiDatabase) -> JsonValue {
     json!({
         "code": "info_one_item_ok",
         "message": "Successfully created new entry!",
-        "item_id": conn.run(move |c| entry.insert(c)).await
+        "item_id": conn.run(move |c| entry.insert(c, namespace.0)).await
     })
 }
 
 
 #[post("/", format = "application/json", data = "<entries>", rank = 2)]
-pub async fn create_many_entries(entries: Json<Vec<Entry>>, conn: ApiDatabase) -> JsonValue {
+pub async fn create_many_entries(namespace: Namespace, entries: Json<Vec<Entry>>, conn: ApiDatabase) -> JsonValue {
     json!({
         "code": "info_many_items_ok",
         "message": "Successfully created multiple entries!",
         "item_ids": conn.run(
-            |c| entries.into_inner()
+            move |c| entries.into_inner()
                 .iter()
-                .map(|e| e.insert(c))
+                .map(|entry| entry.insert(c, namespace.0.clone()))
                 .collect::<Vec<u32>>()
         ).await
     })
@@ -75,11 +76,11 @@ pub async fn create_many_entries(entries: Json<Vec<Entry>>, conn: ApiDatabase) -
 
 
 #[put("/<id>", format = "application/json", data = "<entry>")]
-pub async fn update_entry_by_id(id: u32, entry: Entry, conn: ApiDatabase) -> JsonValue {
+pub async fn update_entry_by_id(id: u32, namespace: Namespace, entry: Entry, conn: ApiDatabase) -> JsonValue {
     json!({
         "code": "info_item_put_ok",
         "message": "Successfully updated/created entry!",
-        "item_id": conn.run(move |c| entry.put(c, id)).await
+        "item_id": conn.run(move |c| entry.put(c, id, namespace.0)).await
     })
 }
 

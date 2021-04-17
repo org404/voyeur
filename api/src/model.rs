@@ -4,7 +4,6 @@ use rocket_contrib::databases::postgres;
 use serde::{Serialize, Deserialize};
 use serde_json::{from_str, Value};
 use serde_json::ser::to_string;
-use crate::sql::SqlItem;
 
 
 // Limit is 1MB here, should be enough for common use. If you are sending
@@ -17,24 +16,25 @@ pub struct ApiDatabase(postgres::Client);
 
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
-pub struct Entry {
-    #[serde(skip_deserializing)]
-    pub id:        u32,
-    pub namespace: String,
-    pub content:   Value,
+pub struct Entry(pub Value);
+
+
+#[derive(Serialize, Clone, Debug)]
+pub struct EntryResponse {
+    pub id:      u32,
+    pub content: Value
 }
 
 
-impl SqlItem for Entry {
-    fn from_row(row: &postgres::Row) -> Self {
-        Self {
-            id:        row.get::<_, i32>("id") as u32,
-            namespace: row.get("namespace"),
-            content:   from_str::<Value>(&row.get::<_, String>("content")).unwrap(),
+impl Entry {
+    pub fn from_row(row: &postgres::Row) -> EntryResponse {
+        EntryResponse {
+            id: row.get::<_, i32>("id") as u32,
+            content: from_str::<Value>(&row.get::<_, String>("content")).unwrap(),
         }
     }
 
-    fn get_all(c: &mut postgres::Client, namespace: String) -> Vec<Self> {
+    pub fn get_all(c: &mut postgres::Client, namespace: String) -> Vec<EntryResponse> {
         c.query(
             "SELECT * FROM entries WHERE namespace = $1",
             &[&namespace]
@@ -45,7 +45,7 @@ impl SqlItem for Entry {
         .collect()
     }
 
-    fn get_page(c: &mut postgres::Client, namespace: String, page: u32, page_size: u16) -> Vec<Self> {
+    pub fn get_page(c: &mut postgres::Client, namespace: String, page: u32, page_size: u16) -> Vec<EntryResponse> {
         c.query(
             "SELECT * FROM entries WHERE namespace = $1 \
              ORDER BY id ASC LIMIT $2 OFFSET $3",
@@ -57,25 +57,25 @@ impl SqlItem for Entry {
         .collect()
     }
 
-    fn insert(&self, c: &mut postgres::Client) -> u32 {
+    pub fn insert(&self, c: &mut postgres::Client, namespace: String) -> u32 {
         c.query_one(
             "INSERT INTO entries (namespace, content) VALUES ($1, $2) RETURNING id",
-            &[&self.namespace, &to_string(&self.content).unwrap()]
+            &[&namespace, &to_string(&self.0).unwrap()]
         )
         .expect("Failed to insert item!")
         .get::<_, i32>("id") as u32
     }
 
-    fn put(&self, c: &mut postgres::Client, id: u32) -> u32 {
+    pub fn put(&self, c: &mut postgres::Client, id: u32, namespace: String) -> u32 {
         c.query_one(
             "INSERT INTO entries (id, namespace, content) VALUES ($1, $2, $3) ON CONFLICT (id) \
             DO UPDATE SET namespace = EXCLUDED.namespace, content = EXCLUDED.content RETURNING id",
-            &[&(id as i32), &self.namespace, &to_string(&self.content).unwrap()]
+            &[&(id as i32), &namespace, &to_string(&self.0).unwrap()]
         )
         .unwrap().get::<_, i32>("id") as u32
     }
 
-    fn delete_all(c: &mut postgres::Client, namespace: String) -> u64 {
+    pub fn delete_all(c: &mut postgres::Client, namespace: String) -> u64 {
         c.query_one(
             "WITH rows as (DELETE FROM entries WHERE namespace = $1 RETURNING *) \
             SELECT COUNT(*) FROM rows",
@@ -122,9 +122,9 @@ impl<'r> FromData<'r> for Entry {
 
         match data.open(limit).into_string().await {
             Ok(string) => match string {
-                s if s.is_complete() => match from_str::<Entry>(&s) {
+                s if s.is_complete() => match from_str::<Value>(&s) {
                     // Return successfully.
-                    Ok(valid_data) => Outcome::Success(valid_data),
+                    Ok(valid_data) => Outcome::Success(Entry(valid_data)),
                     Err(_e) => {
                         // TODO add BadEntry instance to request cache for error handling.
                         Outcome::Failure((Status::InternalServerError, ()))

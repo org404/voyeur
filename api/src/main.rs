@@ -3,7 +3,6 @@
 #[macro_use] extern crate rocket_contrib;
 
 
-mod sql;
 mod model;
 mod health;
 mod entries;
