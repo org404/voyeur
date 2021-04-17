@@ -15,7 +15,7 @@ const DEFAULT_BUFFER_LIMIT: u32 = 1024 * 1024;
 pub struct ApiDatabase(postgres::Client);
 
 
-#[derive(Serialize, Deserialize, Clone, Debug)]
+#[derive(Deserialize, Clone, Debug)]
 pub struct Entry(pub Value);
 
 
