@@ -16,7 +16,7 @@ done
 
 # : '
 echo
-curl "http://localhost:8000/api/v1/health"
+curl "http://localhost:8000/api/v1/health" || exit 1
 
 echo
 curl -H "X-Namespace: This sample sentence was crafted to be exactly 65 characters long" "http://localhost:8000/api/v1/entries"
@@ -49,6 +49,13 @@ echo
 sample="This is test data to update!"
 curl -X PUT -d "{\"logs\": \"$sample\"}" -H "X-Namespace: fuzzer1" -H "Content-Type: application/json" "http://localhost:8000/api/v1/entries/3"
 curl -X PUT -d "{\"logs\": \"$sample\"}" -H "Content-Type: application/json" "http://localhost:8000/api/v1/entries/4?namespace=fuzzer1"
+
+curl -X PUT -d "{\"logs\": \"$sample\"}" -H "Content-Type: application/json" "http://localhost:8000/api/v1/entries/4294967295?namespace=fuzzer1"
+curl -X PUT -d "{\"logs\": \"$sample\"}" -H "Content-Type: application/json" "http://localhost:8000/api/v1/entries/18446744073709551615?namespace=fuzzer1"
+curl -sfX PUT -d "{\"logs\": \"$sample\"}" -H "Content-Type: application/json" "http://localhost:8000/api/v1/entries/18446744073709551616?namespace=fuzzer1" || \
+    echo -e "expected error ID 18446744073709551616 (u64::MAX + 1)\n"
+
+curl "http://localhost:8000/api/v1/entries?namespace=fuzzer1"
 
 echo
 curl -X DELETE "http://localhost:8000/api/v1/entries?namespace=fuzzer1"

@@ -21,7 +21,7 @@ pub struct Entry(pub Value);
 
 #[derive(Serialize, Clone, Debug)]
 pub struct EntryResponse {
-    pub id:      u32,
+    pub id:      u64,
     pub content: Value
 }
 
@@ -29,7 +29,7 @@ pub struct EntryResponse {
 impl Entry {
     pub fn from_row(row: &postgres::Row) -> EntryResponse {
         EntryResponse {
-            id: row.get::<_, i32>("id") as u32,
+            id: row.get::<_, i64>("id") as u64,
             content: from_str::<Value>(&row.get::<_, String>("content")).unwrap(),
         }
     }
@@ -57,22 +57,22 @@ impl Entry {
         .collect()
     }
 
-    pub fn insert(&self, c: &mut postgres::Client, namespace: String) -> u32 {
+    pub fn insert(&self, c: &mut postgres::Client, namespace: String) -> u64 {
         c.query_one(
             "INSERT INTO entries (namespace, content) VALUES ($1, $2) RETURNING id",
             &[&namespace, &to_string(&self.0).unwrap()]
         )
         .expect("Failed to insert item!")
-        .get::<_, i32>("id") as u32
+        .get::<_, i64>("id") as u64
     }
 
-    pub fn put(&self, c: &mut postgres::Client, id: u32, namespace: String) -> u32 {
+    pub fn put(&self, c: &mut postgres::Client, id: u64, namespace: String) -> u64 {
         c.query_one(
             "INSERT INTO entries (id, namespace, content) VALUES ($1, $2, $3) ON CONFLICT (id) \
             DO UPDATE SET namespace = EXCLUDED.namespace, content = EXCLUDED.content RETURNING id",
-            &[&(id as i32), &namespace, &to_string(&self.0).unwrap()]
+            &[&(id as i64), &namespace, &to_string(&self.0).unwrap()]
         )
-        .unwrap().get::<_, i32>("id") as u32
+        .unwrap().get::<_, i64>("id") as u64
     }
 
     pub fn delete_all(c: &mut postgres::Client, namespace: String) -> u64 {

@@ -69,14 +69,14 @@ pub async fn create_many_entries(namespace: Namespace, entries: Json<Vec<Entry>>
             move |c| entries.into_inner()
                 .iter()
                 .map(|entry| entry.insert(c, namespace.0.clone()))
-                .collect::<Vec<u32>>()
+                .collect::<Vec<u64>>()
         ).await
     })
 }
 
 
 #[put("/<id>", format = "application/json", data = "<entry>")]
-pub async fn update_entry_by_id(id: u32, namespace: Namespace, entry: Entry, conn: ApiDatabase) -> JsonValue {
+pub async fn update_entry_by_id(id: u64, namespace: Namespace, entry: Entry, conn: ApiDatabase) -> JsonValue {
     json!({
         "code": "info_item_put_ok",
         "message": "Successfully updated/created entry!",
