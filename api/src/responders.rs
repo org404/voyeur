@@ -2,8 +2,10 @@ use rocket_contrib::json::JsonValue;
 
 
 #[derive(Responder)]
-pub enum Error {
+pub enum CustomResponder {
+    #[response(status = 200, content_type = "json")]
+    Ok(JsonValue),
     #[response(status = 400, content_type = "json")]
-    BadRequest(JsonValue)
+    BadRequest(JsonValue),
 }
 

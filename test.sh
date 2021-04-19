@@ -58,6 +58,12 @@ curl -sfX PUT -d "{\"logs\": \"$sample\"}" -H "Content-Type: application/json" "
 curl "http://localhost:8000/api/v1/entries?namespace=fuzzer1"
 
 echo
+curl -X PUT -d "{\"logs\": \"$sample\"}" -H "Content-Type: application/json" "http://localhost:8000/api/v1/entries/123456789?namespace=test_1"
+curl "http://localhost:8000/api/v1/entries?id=123456789&namespace=test_1"
+curl -X DELETE -H "Content-Type: application/json" "http://localhost:8000/api/v1/entries/123456789?namespace=test_1"
+curl -X DELETE -H "Content-Type: application/json" "http://localhost:8000/api/v1/entries/123456789?namespace=test_1"
+
+echo
 curl -X DELETE "http://localhost:8000/api/v1/entries?namespace=fuzzer1"
 curl -X DELETE -H "X-Namespace: fuzzer69" "http://localhost:8000/api/v1/entries"
 # '

@@ -34,6 +34,16 @@ impl Entry {
         }
     }
 
+    pub fn get_one(c: &mut postgres::Client, id: u64, namespace: String) -> Result<EntryResponse, u64> {
+        match c.query_one(
+            "SELECT * FROM entries WHERE id = $1 AND namespace = $2",
+            &[&(id as i64), &namespace]
+        ) {
+            Ok(row) => Ok(Self::from_row(&row)),
+            Err(_) => Err(id),
+        }
+    }
+
     pub fn get_all(c: &mut postgres::Client, namespace: String) -> Vec<EntryResponse> {
         c.query(
             "SELECT * FROM entries WHERE namespace = $1",
@@ -83,6 +93,16 @@ impl Entry {
         )
         .expect("Fatal error on deletion!")
         .get::<_, i64>("count") as u64
+    }
+
+    pub fn delete_one(c: &mut postgres::Client, id: u64, namespace: String) -> Result<u64, u64> {
+        match c.query_one(
+            "DELETE FROM entries WHERE id = $1 AND namespace = $2 RETURNING id",
+            &[&(id as i64), &namespace]
+        ) {
+            Ok(_) => Ok(id),
+            Err(_) => Err(id)
+        }
     }
 }
 

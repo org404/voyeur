@@ -1,8 +1,33 @@
 use crate::namespace::{Namespace, BadNamespace};
 use rocket_contrib::json::{Json, JsonValue};
+use crate::responders::CustomResponder;
 use crate::model::{ApiDatabase, Entry};
 use crate::pagination::PageSize;
-use crate::responders::Error;
+
+
+/// This endpoint is used to receive a single entry by ID (url argument <id> of type unsigned
+/// 64-bit integer). Entry is an object containing id and content, example: {"id": 4, "content":
+/// <your_json>}. For this endpoint you must provide namespace (url argument <namespace> or header
+/// "X-Namespace", of type <String>).
+#[get("/?<id>", rank = 1)]
+pub async fn get_entry_by_id(namespace: Namespace, id: u64, conn: ApiDatabase) -> CustomResponder {
+    // @Robustness: This copy is required due to the way we handle errors right now.
+    let namespace_copy = namespace.0.clone();
+
+    match conn.run(move |c| Entry::get_one(c, id, namespace.0)).await {
+        Ok(entry) => CustomResponder::Ok(json!({
+            "code": "no_message",
+            "namespace": &namespace_copy,
+            "data": entry
+        })),
+        Err(id) => CustomResponder::BadRequest(json!({
+            "code": "error_sql_get_one_by_id",
+            "message": format!("Entry with ID '{}' does not exist!", id),
+            "namespace": &namespace_copy,
+            "id": id,
+        }))
+    }
+}
 
 
 /// This endpoint is used to receive a paginated JSON array of entries. Entry is an object
@@ -11,7 +36,7 @@ use crate::responders::Error;
 /// and page (url argument <page>, of type unsigned 32-bit integer) values. Optionally, you can
 /// specify a page size (url argument <page_size> or header "X-PAGE-SIZE", of type unsigned 16-bit
 /// integer).
-#[get("/?<page>", rank = 1)]
+#[get("/?<page>", rank = 2)]
 pub async fn get_paginated_entries(namespace: Namespace, page: u32, page_size: PageSize, conn: ApiDatabase) -> JsonValue {
     json!({
         "code": "no_message",
@@ -29,7 +54,7 @@ pub async fn get_paginated_entries(namespace: Namespace, page: u32, page_size: P
 /// This endpoint is used to receive a JSON array of all existing entries. Entry is an object
 /// containing id and content, example: {"id": 4, "content": <your_json>}. For this endpoint
 /// you must provide namespace (url argument <namespace> or header "X-Namespace", of type <String>).
-#[get("/", rank = 2)]
+#[get("/", rank = 3)]
 pub async fn get_all_entries(namespace: Namespace, conn: ApiDatabase) -> JsonValue {
     json!({
         "code": "no_message",
@@ -44,19 +69,19 @@ pub async fn get_all_entries(namespace: Namespace, conn: ApiDatabase) -> JsonVal
 /// to easily differentiate them without having to compare whole message (sometimes it's not even possible
 /// to do comparsion without regex). Also, response contains error message itself and some additional info
 /// if it's needed.
-#[get("/", rank = 3)]
-pub fn handle_namespace_errors(namespace: BadNamespace) -> Error {
+#[get("/", rank = 4)]
+pub fn handle_namespace_errors(namespace: BadNamespace) -> CustomResponder {
     match namespace.0 {
-        Some(v) if v.is_empty() => Error::BadRequest(json!({
+        Some(v) if v.is_empty() => CustomResponder::BadRequest(json!({
             "code":    "err_namespace_empty",
             "message": "You must provide 'X-Namespace' header or 'namespace' URL argument with request!",
         })),
-        Some(v) => Error::BadRequest(json!({
+        Some(v) => CustomResponder::BadRequest(json!({
             "code":      "err_namespace_long",
             "message":   format!("Provided namespace value is too big (max is 64 characters, received {})!", v.len()),
             "namespace": v,
         })),
-        None => Error::BadRequest(json!({
+        None => CustomResponder::BadRequest(json!({
             "code":    "err_namespace_empty",
             "message": "You must provide 'X-Namespace' header or 'namespace' URL argument with request!",
         }))
@@ -109,6 +134,7 @@ pub async fn create_many_entries(namespace: Namespace, entries: Json<Vec<Entry>>
 /// response will contain ID of the put entry.
 #[put("/<id>", format = "application/json", data = "<entry>")]
 pub async fn update_entry_by_id(id: u64, namespace: Namespace, entry: Entry, conn: ApiDatabase) -> JsonValue {
+    // TODO: This should return an error if the object exists but namespace is different, instead of updating (?).
     json!({
         "code": "info_item_put_ok",
         "message": "Successfully updated/created entry!",
@@ -129,5 +155,31 @@ pub async fn delete_all_entries(namespace: Namespace, conn: ApiDatabase) -> Json
         "namespace": &namespace.0,
         "amount": conn.run(|c| Entry::delete_all(c, namespace.0)).await
     })
+}
+
+
+/// This endpoint is used to delete single entry by ID of certain namespace. For this endpoint you
+/// must provide ID (url argument <id> of type unsigned 64-bit integer) namespace (url argument
+/// <namespace> or header "X-Namespace", of type <String>). In addition to message code and message,
+/// correct response will contain namespace itself and ID of the deleted entry.
+#[delete("/<id>")]
+pub async fn delete_entry_by_id(namespace: Namespace, id: u64, conn: ApiDatabase) -> CustomResponder {
+    // @Robustness: This copy is required due to the way we handle errors right now.
+    let namespace_copy = namespace.0.clone();
+
+    match conn.run(move |c| Entry::delete_one(c, id, namespace.0)).await {
+        Ok(id) => CustomResponder::Ok(json!({
+            "code": "info_delete_entry_ok",
+            "message": format!("Successfully deleted an entry of ID '{}' for namespace '{}'!", &id, &namespace_copy),
+            "namespace": &namespace_copy,
+            "id": id,
+        })),
+        Err(id) => CustomResponder::BadRequest(json!({
+            "code": "error_sql_get_one_by_id",
+            "message": format!("Entry with ID '{}' does not exist!", id),
+            "namespace": &namespace_copy,
+            "id": id,
+        }))
+    }
 }
 
