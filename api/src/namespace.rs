@@ -1,11 +1,10 @@
+use crate::errors::ErrorMessage;
 use rocket::{request, Request};
+use rocket::http::Status;
 
 
 /// Value which allows to access namespace value.
 pub struct Namespace(pub String);
-
-/// Struct to hold red path value of namespace.
-pub struct BadNamespace(pub Option<String>);
 
 
 // Allows a route to access good namespace value.
@@ -13,7 +12,7 @@ pub struct BadNamespace(pub Option<String>);
 impl<'r> request::FromRequest<'r> for Namespace {
     type Error = ();
 
-    async fn from_request(req: &'r Request<'_>) -> request::Outcome<Self, ()> {
+    async fn from_request(req: &'r Request<'_>) -> request::Outcome<Self, Self::Error> {
         // Extract value from header or url.
         let namespace = match req.headers().get_one("X-Namespace") {
             Some(value) => value.to_string(),
@@ -32,30 +31,27 @@ impl<'r> request::FromRequest<'r> for Namespace {
         };
 
         match namespace {
-            v if v.is_empty() | (v.len() > 64) => {
-                // Store bad namespace value
-                req.local_cache(|| BadNamespace(Some(v)));
-                // Forward to error handler which is below in the rank ladder.
-                request::Outcome::Forward(())
+            v if v.is_empty() => {
+                // Store error message.
+                req.local_cache(|| ErrorMessage(Some(json!({
+                    "code":    "err_namespace_empty",
+                    "message": "You must provide 'X-Namespace' header or 'namespace' URL argument with request!",
+                }))));
+                // Forward to error catcher.
+                request::Outcome::Failure((Status::BadRequest, ()))
             },
-            v => {
-                // Good namespace is ready for use.
-                request::Outcome::Success(Namespace(v))
-            }
-        }
-    }
-}
-
-
-// Allows a route to access bad namespace value.
-#[rocket::async_trait]
-impl<'r> request::FromRequest<'r> for BadNamespace {
-    type Error = ();
-
-    async fn from_request(req: &'r Request<'_>) -> request::Outcome<Self, ()> {
-        match req.local_cache(|| BadNamespace(None)) {
-            BadNamespace(Some(value)) => request::Outcome::Success(BadNamespace(Some(value.to_string()))),
-            BadNamespace(None) => request::Outcome::Success(BadNamespace(None)),
+            v if v.len() > 64 => {
+                // Store error message.
+                req.local_cache(|| ErrorMessage(Some(json!({
+                    "code":      "err_namespace_long",
+                    "message":   format!("Provided namespace value is too big (max is 64 characters, received {})!", v.len()),
+                    "namespace": v,
+                }))));
+                // Forward to error catcher.
+                request::Outcome::Failure((Status::BadRequest, ()))
+            },
+            // Good namespace is ready for use.
+            v => request::Outcome::Success(Namespace(v))
         }
     }
 }

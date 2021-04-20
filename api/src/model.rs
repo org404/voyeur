@@ -44,6 +44,7 @@ impl Entry {
         }
     }
 
+    /*
     pub fn get_all(c: &mut postgres::Client, namespace: String) -> Vec<EntryResponse> {
         c.query(
             "SELECT * FROM entries WHERE namespace = $1",
@@ -54,6 +55,7 @@ impl Entry {
         .map(|row| Self::from_row(row))
         .collect()
     }
+    */
 
     pub fn get_page(c: &mut postgres::Client, namespace: String, page: u32, page_size: u16) -> Vec<EntryResponse> {
         c.query(

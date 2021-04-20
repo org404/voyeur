@@ -1,26 +1,13 @@
 : '
-for n in {1..100}; do
-    res=$(curl -sX GET "http://localhost:8000/api/v1/entries?namespace=n1")
-    echo $res
-done
+docker build --target tester -t api-tester api && docker run --network=host --rm api-tester
 '
 
-: '
-for n in {1..100}; do
-    res=$(cd api && RUST_BACKTRACE=1 cargo test -j 4 -- --test-threads=1)
-    if [[ $res == *"SIGILL"* ]]; then
-        echo $res
-    fi
-done
-'
-
-# : '
+#: '
 echo
 curl "http://localhost:8000/api/v1/health" || exit 1
 
 echo
 curl -H "X-Namespace: This sample sentence was crafted to be exactly 65 characters long" "http://localhost:8000/api/v1/entries"
-curl "http://localhost:8000/api/v1/entries?namespace=test_value"
 
 echo
 curl "http://localhost:8000/api/v1/entries?namespace=test_value&page=0"
@@ -35,7 +22,7 @@ sample="This is second test data!"
 curl -X POST -d "{\"text\": \"$sample\"}" -H "Content-Type: application/json" "http://localhost:8000/api/v1/entries?namespace=fuzzer1"
 
 echo
-curl "http://localhost:8000/api/v1/entries?namespace=fuzzer1"
+curl "http://localhost:8000/api/v1/entries?namespace=fuzzer1&page=0"
 
 echo
 sample1="Super cool value one."
@@ -55,15 +42,15 @@ curl -X PUT -d "{\"logs\": \"$sample\"}" -H "Content-Type: application/json" "ht
 curl -sfX PUT -d "{\"logs\": \"$sample\"}" -H "Content-Type: application/json" "http://localhost:8000/api/v1/entries/18446744073709551616?namespace=fuzzer1" || \
     echo -e "expected error ID 18446744073709551616 (u64::MAX + 1)\n"
 
-curl "http://localhost:8000/api/v1/entries?namespace=fuzzer1"
+curl "http://localhost:8000/api/v1/entries?namespace=fuzzer1&page=0"
 
 echo
 curl -X PUT -d "{\"logs\": \"$sample\"}" -H "Content-Type: application/json" "http://localhost:8000/api/v1/entries/123456789?namespace=test_1"
-curl "http://localhost:8000/api/v1/entries?id=123456789&namespace=test_1"
+curl "http://localhost:8000/api/v1/entries/123456789?namespace=test_1"
 curl -X DELETE -H "Content-Type: application/json" "http://localhost:8000/api/v1/entries/123456789?namespace=test_1"
 curl -X DELETE -H "Content-Type: application/json" "http://localhost:8000/api/v1/entries/123456789?namespace=test_1"
 
 echo
 curl -X DELETE "http://localhost:8000/api/v1/entries?namespace=fuzzer1"
 curl -X DELETE -H "X-Namespace: fuzzer69" "http://localhost:8000/api/v1/entries"
-# '
+#'

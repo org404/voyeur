@@ -1,15 +1,17 @@
-use crate::namespace::{Namespace, BadNamespace};
 use rocket_contrib::json::{Json, JsonValue};
 use crate::responders::CustomResponder;
 use crate::model::{ApiDatabase, Entry};
 use crate::pagination::PageSize;
+use crate::namespace::Namespace;
+use crate::errors::ErrorMessage;
+use rocket::Request;
 
 
-/// This endpoint is used to receive a single entry by ID (url argument <id> of type unsigned
+/// This endpoint is used to receive a single entry by ID (url path /<id> of type unsigned
 /// 64-bit integer). Entry is an object containing id and content, example: {"id": 4, "content":
 /// <your_json>}. For this endpoint you must provide namespace (url argument <namespace> or header
 /// "X-Namespace", of type <String>).
-#[get("/?<id>", rank = 1)]
+#[get("/<id>")]
 pub async fn get_entry_by_id(namespace: Namespace, id: u64, conn: ApiDatabase) -> CustomResponder {
     // @Robustness: This copy is required due to the way we handle errors right now.
     let namespace_copy = namespace.0.clone();
@@ -36,7 +38,7 @@ pub async fn get_entry_by_id(namespace: Namespace, id: u64, conn: ApiDatabase) -
 /// and page (url argument <page>, of type unsigned 32-bit integer) values. Optionally, you can
 /// specify a page size (url argument <page_size> or header "X-PAGE-SIZE", of type unsigned 16-bit
 /// integer).
-#[get("/?<page>", rank = 2)]
+#[get("/?<page>")]
 pub async fn get_paginated_entries(namespace: Namespace, page: u32, page_size: PageSize, conn: ApiDatabase) -> JsonValue {
     json!({
         "code": "no_message",
@@ -47,45 +49,6 @@ pub async fn get_paginated_entries(namespace: Namespace, page: u32, page_size: P
             move |c| Entry::get_page(c, namespace.0, page, page_size.0)
         ).await
     })
-}
-
-
-// @Redundant: maybe we should remove this endpoint so pagination is enforced?
-/// This endpoint is used to receive a JSON array of all existing entries. Entry is an object
-/// containing id and content, example: {"id": 4, "content": <your_json>}. For this endpoint
-/// you must provide namespace (url argument <namespace> or header "X-Namespace", of type <String>).
-#[get("/", rank = 3)]
-pub async fn get_all_entries(namespace: Namespace, conn: ApiDatabase) -> JsonValue {
-    json!({
-        "code": "no_message",
-        "namespace": &namespace.0,
-        "data": conn.run(|c| Entry::get_all(c, namespace.0)).await
-    })
-}
-
-
-/// This endpoint is used to provide better error information and handle errors that are related
-/// to namespace value. It responds with 400 error code JSON message, containing short code for an error
-/// to easily differentiate them without having to compare whole message (sometimes it's not even possible
-/// to do comparsion without regex). Also, response contains error message itself and some additional info
-/// if it's needed.
-#[get("/", rank = 4)]
-pub fn handle_namespace_errors(namespace: BadNamespace) -> CustomResponder {
-    match namespace.0 {
-        Some(v) if v.is_empty() => CustomResponder::BadRequest(json!({
-            "code":    "err_namespace_empty",
-            "message": "You must provide 'X-Namespace' header or 'namespace' URL argument with request!",
-        })),
-        Some(v) => CustomResponder::BadRequest(json!({
-            "code":      "err_namespace_long",
-            "message":   format!("Provided namespace value is too big (max is 64 characters, received {})!", v.len()),
-            "namespace": v,
-        })),
-        None => CustomResponder::BadRequest(json!({
-            "code":    "err_namespace_empty",
-            "message": "You must provide 'X-Namespace' header or 'namespace' URL argument with request!",
-        }))
-    }
 }
 
 
@@ -179,6 +142,24 @@ pub async fn delete_entry_by_id(namespace: Namespace, id: u64, conn: ApiDatabase
             "message": format!("Entry with ID '{}' does not exist!", id),
             "namespace": &namespace_copy,
             "id": id,
+        }))
+    }
+}
+
+
+/// This endpoint is used to provide better error information and handle 400 http code errors with json
+/// response, e.g. empty namespace value. It responds with 400 error code JSON message, containing short
+/// code for an error to easily differentiate them without having to compare whole message (sometimes it's
+/// not even possible to do comparsion without regex). Also, response contains error message itself and
+/// some additional info if it's needed.
+#[catch(400)]
+pub fn handle_bad_request_errors(req: &Request) -> CustomResponder {
+    match req.local_cache(|| ErrorMessage(None)) {
+        ErrorMessage(Some(v)) => CustomResponder::BadRequest(v.clone()),
+        // Default response
+        ErrorMessage(None) => CustomResponder::UnknownError(json!({
+            "code":    "err_unknown_error",
+            "message": "Some unknown (unhandled) error occured! Please, report the bug by filing an issue.",
         }))
     }
 }
