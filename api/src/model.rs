@@ -123,7 +123,7 @@ impl Entry {
 impl<'r> FromData<'r> for Entry {
     type Error = ();
 
-    async fn from_data(req: &'r Request<'_>, data: Data) -> Outcome<Self, ()> {
+    async fn from_data(req: &'r Request<'_>, mut data: Data) -> Outcome<Self, ()> {
         // Ensure the content type is correct before opening the data.
         if req.content_type() != Some(&ContentType::JSON) {
             return Outcome::Forward(data);
@@ -133,16 +133,13 @@ impl<'r> FromData<'r> for Entry {
         // request routing info to avoid forward second time. We need this instead of
         // simpler handling that existed before, because all proper error handling below
         // is then unaccessible for second handler, which makes it much less usable.
-        //
-        // @RemoveLater Previous code:
-        //if data.peek(1).await == b"[" {
-        //    return Outcome::Forward(data);
-        //}
-        //
-        match req.route().expect("Route is empty during handling request body!").rank {
-            1 => return Outcome::Forward(data),
-            _ => ()
-        };
+        if data.peek(1).await == b"[" {
+            match req.route().expect("Route is empty during handling request body!").rank {
+                1 => return Outcome::Forward(data),
+                _ => ()
+            };
+        }
+
         // This is an optional header which defines the size in bytes of data sent
         // in the request. By default size is capped at 1MB, and if you want to send
         // bigger data, you must provide X-Content-Length. If body of the request is
