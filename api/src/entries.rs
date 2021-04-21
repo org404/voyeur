@@ -1,6 +1,6 @@
-use rocket_contrib::json::{Json, JsonValue};
 use crate::responders::CustomResponder;
 use crate::model::{ApiDatabase, Entry};
+use rocket_contrib::json::JsonValue;
 use crate::pagination::PageSize;
 use crate::namespace::Namespace;
 use crate::errors::ErrorMessage;
@@ -76,14 +76,15 @@ pub async fn create_one_entry(namespace: Namespace, entry: Entry, conn: ApiDatab
 /// or header "X-Namespace", of type <String>). In addition to message code and message, correct
 /// response will contain a list of IDs of created entries.
 #[post("/", format = "application/json", data = "<entries>", rank = 2)]
-pub async fn create_many_entries(namespace: Namespace, entries: Json<Vec<Entry>>, conn: ApiDatabase) -> JsonValue {
+pub async fn create_many_entries(namespace: Namespace, entries: Entry, conn: ApiDatabase) -> JsonValue {
     json!({
         "code": "info_many_items_ok",
         "message": "Successfully created multiple entries!",
         "item_ids": conn.run(
-            move |c| entries.into_inner()
+            // We know for sure that this JSON value is an array of something.
+            move |c| entries.0.as_array().unwrap()
                 .iter()
-                .map(|entry| entry.insert(c, namespace.0.clone()))
+                .map(|entry| Entry::insert_raw(c, namespace.0.clone(), entry))
                 .collect::<Vec<u64>>()
         ).await
     })

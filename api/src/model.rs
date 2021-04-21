@@ -3,6 +3,7 @@ use rocket::data::{Outcome, FromData, ToByteUnit};
 use rocket_contrib::databases::postgres;
 use serde::{Serialize, Deserialize};
 use serde_json::{from_str, Value};
+use crate::errors::ErrorMessage;
 use serde_json::ser::to_string;
 
 
@@ -78,6 +79,15 @@ impl Entry {
         .get::<_, i64>("id") as u64
     }
 
+    pub fn insert_raw(c: &mut postgres::Client, namespace: String, entry: &Value) -> u64 {
+        c.query_one(
+            "INSERT INTO entries (namespace, content) VALUES ($1, $2) RETURNING id",
+            &[&namespace, &to_string(entry).unwrap()]
+        )
+        .expect("Failed to insert item!")
+        .get::<_, i64>("id") as u64
+    }
+
     pub fn put(&self, c: &mut postgres::Client, id: u64, namespace: String) -> u64 {
         c.query_one(
             "INSERT INTO entries (id, namespace, content) VALUES ($1, $2, $3) ON CONFLICT (id) \
@@ -113,18 +123,26 @@ impl Entry {
 impl<'r> FromData<'r> for Entry {
     type Error = ();
 
-    async fn from_data(req: &'r Request<'_>, mut data: Data) -> Outcome<Self, ()> {
+    async fn from_data(req: &'r Request<'_>, data: Data) -> Outcome<Self, ()> {
         // Ensure the content type is correct before opening the data.
-        let json_ct = ContentType::new("application", "json");
-        if req.content_type() != Some(&json_ct) {
+        if req.content_type() != Some(&ContentType::JSON) {
             return Outcome::Forward(data);
         }
 
-        // Here we forward to another handler if data is a list.
-        if data.peek(1).await == b"[" {
-            return Outcome::Forward(data);
-        }
-
+        // @Hack Here we forward to another handler if data is a list. We have to use
+        // request routing info to avoid forward second time. We need this instead of
+        // simpler handling that existed before, because all proper error handling below
+        // is then unaccessible for second handler, which makes it much less usable.
+        //
+        // @RemoveLater Previous code:
+        //if data.peek(1).await == b"[" {
+        //    return Outcome::Forward(data);
+        //}
+        //
+        match req.route().expect("Route is empty during handling request body!").rank {
+            1 => return Outcome::Forward(data),
+            _ => ()
+        };
         // This is an optional header which defines the size in bytes of data sent
         // in the request. By default size is capped at 1MB, and if you want to send
         // bigger data, you must provide X-Content-Length. If body of the request is
@@ -134,9 +152,13 @@ impl<'r> FromData<'r> for Entry {
                 Ok(size) => size.bytes(),
                 // If we got bad data we better off making it clear
                 // than silently setting default buffer limit.
-                Err(_e) => {
-                    // TODO add BadEntry instance to request cache for error handling.
-                    return Outcome::Failure((Status::InternalServerError, ()));
+                Err(e) => {
+                    // Store error message.
+                    req.local_cache(|| ErrorMessage(Some(json!({
+                        "code":    "err_content_length_parse",
+                        "message": format!("Couldn't parse X-Content-Length with error: '{}'!", e)
+                    }))));
+                    return Outcome::Failure((Status::BadRequest, ()));
                 }
             },
             None => DEFAULT_BUFFER_LIMIT.bytes()
@@ -147,17 +169,33 @@ impl<'r> FromData<'r> for Entry {
                 s if s.is_complete() => match from_str::<Value>(&s) {
                     // Return successfully.
                     Ok(valid_data) => Outcome::Success(Entry(valid_data)),
-                    Err(_e) => {
-                        // TODO add BadEntry instance to request cache for error handling.
-                        Outcome::Failure((Status::InternalServerError, ()))
+                    Err(e) => {
+                        req.local_cache(|| ErrorMessage(Some(json!({
+                            "code":    "err_request_body_parse",
+                            "message": format!("Couldn't parse request body into proper JSON with error: '{}'!", e)
+                        }))));
+                        Outcome::Failure((Status::BadRequest, ()))
                     }
                 },
-                // Here we handle error that indicates "too big buffer".
-                _ => Outcome::Failure((Status::PayloadTooLarge, ()))
+                // Here we handle error that indicates "too big buffer". We don't re-use an actual
+                // error because it contains message in the format '<some message>: "<body>"' and
+                // this is not good, because server needs to write the whole body (as in buffer) back,
+                // which, in addition, makes error message unreadable.
+                _ => {
+                    req.local_cache(|| ErrorMessage(Some(json!({
+                        "code":    "err_buffer_too_large",
+                        "message": "Couldn't parse request body, it's too large! Default accepted size is 1MB. \
+                            Consider using X-Content-Length header to set expected buffer size."
+                    }))));
+                    Outcome::Failure((Status::BadRequest, ()))
+                }
             },
-            Err(_e) => {
-                // TODO add BadEntry instance to request cache for error handling.
-                Outcome::Failure((Status::InternalServerError, ()))
+            Err(e) => {
+                req.local_cache(|| ErrorMessage(Some(json!({
+                    "code":    "err_request_body_read",
+                    "message": format!("Couldn't read request body into string with error: '{}'!", e)
+                }))));
+                Outcome::Failure((Status::BadRequest, ()))
             }
         }
     }
