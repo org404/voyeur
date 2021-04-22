@@ -16,7 +16,9 @@ services:
     container_name: voyeur-api
     image: voyeur-api
     restart: always
-    build: api
+    build:
+      context: api
+      target: runtime
     networks:
       - default
       - caddynet

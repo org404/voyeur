@@ -161,6 +161,7 @@ impl<'r> FromData<'r> for Entry {
             None => DEFAULT_BUFFER_LIMIT.bytes()
         };
 
+        // Reading body into the buffer and trying to parse it.
         match data.open(limit).into_string().await {
             Ok(string) => match string {
                 s if s.is_complete() => match from_str::<Value>(&s) {
@@ -177,7 +178,8 @@ impl<'r> FromData<'r> for Entry {
                 // Here we handle error that indicates "too big buffer". We don't re-use an actual
                 // error because it contains message in the format '<some message>: "<body>"' and
                 // this is not good, because server needs to write the whole body (as in buffer) back,
-                // which, in addition, makes error message unreadable.
+                // which, in addition to being extremely inefficient, makes the error message completely
+                // unreadable.
                 _ => {
                     req.local_cache(|| ErrorMessage(Some(json!({
                         "code":    "err_buffer_too_large",

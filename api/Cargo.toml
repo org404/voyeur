@@ -1,6 +1,6 @@
 [package]
 name = "api"
-version = "0.2.7"
+version = "0.3.0"
 authors = ["kittyandrew <kitty@maudrew.dev>"]
 edition = "2018"
 
@@ -12,3 +12,5 @@ rocket_contrib = { git = "https://github.com/SergioBenitez/Rocket", features = [
 serde = { version = "1.0.125", features = ["derive"] }
 serde_json = "1.0.64"
 
+[dev-dependencies]
+parking_lot = "0.11"

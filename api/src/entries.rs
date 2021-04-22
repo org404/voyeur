@@ -100,7 +100,7 @@ pub async fn create_many_entries(namespace: Namespace, entries: Entry, conn: Api
 pub async fn update_entry_by_id(id: u64, namespace: Namespace, entry: Entry, conn: ApiDatabase) -> JsonValue {
     // TODO: This should return an error if the object exists but namespace is different, instead of updating (?).
     json!({
-        "code": "info_item_put_ok",
+        "code": "info_put_item_ok",
         "message": "Successfully updated/created entry!",
         "item_id": conn.run(move |c| entry.put(c, id, namespace.0)).await
     })

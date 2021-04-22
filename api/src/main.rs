@@ -3,6 +3,9 @@
 #[macro_use] extern crate rocket_contrib;
 
 
+#[cfg(test)] mod tests;
+
+
 mod model;
 mod health;
 mod errors;
