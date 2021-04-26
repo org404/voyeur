@@ -20,6 +20,8 @@ macro_rules! run_test {
             let $client = Client::tracked(rocket()).await.expect("Rocket client");
             let db = ApiDatabase::get_one($client.rocket()).await;
             let $conn = db.expect("failed to get database connection for testing");
+            // Note: this deletes all entries on 'test_name_alpha' namespace to make
+            //       tests more consistent and easier to write.
             $conn.run(|c| Entry::delete_all(c, "test_name_alpha".to_string())).await;
 
             $block
@@ -43,13 +45,18 @@ fn test_suit_1() {
             assert_eq!(r.content_type(), Some(ContentType::JSON));
             assert_eq!(r.status(), Status::Ok);
 
-            let body = from_str::<Value>(&r.into_string().await.unwrap()).unwrap();
-            let code = body.get("code").unwrap().as_str().unwrap();
+            let body = from_str::<Value>(&r.into_string().await.unwrap())
+                .expect("Failed to read request body as JSON..");
+            let code = body.get("code")
+                .expect("Expected response to contain 'code' field..")
+                .as_str().expect("Expected 'code' field to be a string..");
 
             assert_eq!(code, "info_one_item_ok");
 
             // Save id for later.
-            id1 = body.get("item_id").unwrap().as_u64().unwrap();
+            id1 = body.get("item_id")
+                .expect("Expected response to contain 'item_id' field..")
+                .as_u64().expect("Failed to parse 'item_id' value as u64..");
         }
 
         {
@@ -60,13 +67,18 @@ fn test_suit_1() {
             assert_eq!(r.content_type(), Some(ContentType::JSON));
             assert_eq!(r.status(), Status::Ok);
 
-            let body = from_str::<Value>(&r.into_string().await.unwrap()).unwrap();
-            let code = body.get("code").unwrap().as_str().unwrap();
+            let body = from_str::<Value>(&r.into_string().await.unwrap())
+                .expect("Failed to read request body as JSON..");
+            let code = body.get("code")
+                .expect("Expected response to contain 'code' field..")
+                .as_str().expect("Expected 'code' field to be a string..");
 
             assert_eq!(code, "info_one_item_ok");
 
             // Save id for later.
-            id2 = body.get("item_id").unwrap().as_u64().unwrap();
+            id2 = body.get("item_id")
+                .expect("Expected response to contain 'item_id' field..")
+                .as_u64().expect("Failed to parse 'item_id' value as u64..");
         }
 
         {
@@ -77,24 +89,39 @@ fn test_suit_1() {
             assert_eq!(r.content_type(), Some(ContentType::JSON));
             assert_eq!(r.status(), Status::Ok);
 
-            let body = from_str::<Value>(&r.into_string().await.unwrap()).unwrap();
-            let code = body.get("code").unwrap().as_str().unwrap();
-            let data = body.get("data").unwrap().as_array().unwrap();
+            let body = from_str::<Value>(&r.into_string().await.unwrap())
+                .expect("Failed to read request body as JSON..");
+            let code = body.get("code")
+                .expect("Expected response to contain 'code' field..")
+                .as_str().expect("Expected 'code' field to be a string..");
+            let data = body.get("data")
+                .expect("Expected response to contain 'data' field..")
+                .as_array().expect("Expected 'data' field to be a JSON array..");
 
             assert_eq!(code, "no_message");
             assert_eq!(data.len(), 2);
 
-            let _id1 = data[0].get("id").unwrap().as_u64();
-            let text1 = data[0].get("content").unwrap().get("text").unwrap().as_str();
+            let _id1 = data[0].get("id")
+                .expect("Expected response to contain 'id' field..")
+                .as_u64().expect("Failed to parse 'id' value as u64..");
+            let text1 = data[0]
+                .get("content").expect("Expected response to contain 'content' field..")
+                .get("text").expect("Expected 'content' to contain 'text' field..")
+                .as_str().expect("Expected 'text' field to be a string..");
 
-            assert_eq!(_id1, Some(id1));
-            assert_eq!(text1, Some("This is some test data!"));
+            assert_eq!(_id1, id1);
+            assert_eq!(text1, "This is some test data!");
 
-            let _id2 = data[1].get("id").unwrap().as_u64();
-            let text2 = data[1].get("content").unwrap().get("text").unwrap().as_str();
+            let _id2 = data[1].get("id")
+                .expect("Expected response to contain 'id' field..")
+                .as_u64().expect("Failed to parse 'id' value as u64..");
+            let text2 = data[1]
+                .get("content").expect("Expected response to contain 'content' field..")
+                .get("text").expect("Expected 'content' to contain 'text' field..")
+                .as_str().expect("Expected 'text' field to be a string..");
 
-            assert_eq!(_id2, Some(id2));
-            assert_eq!(text2, Some("This is second test data!"));
+            assert_eq!(_id2, id2);
+            assert_eq!(text2, "This is second test data!");
         }
 
         {
@@ -105,12 +132,17 @@ fn test_suit_1() {
             assert_eq!(r.content_type(), Some(ContentType::JSON));
             assert_eq!(r.status(), Status::Ok);
 
-            let body = from_str::<Value>(&r.into_string().await.unwrap()).unwrap();
-            let code = body.get("code").unwrap().as_str().unwrap();
+            let body = from_str::<Value>(&r.into_string().await.unwrap())
+                .expect("Failed to read request body as JSON..");
+            let code = body.get("code")
+                .expect("Expected response to contain 'code' field..")
+                .as_str().expect("Expected 'code' field to be a string..");
 
             assert_eq!(code, "info_delete_entries_ok");
 
-            let amount = body.get("amount").unwrap().as_u64().unwrap();
+            let amount = body.get("amount")
+                .expect("Expected response to contain 'amount' field..")
+                .as_u64().expect("Failed to parse 'amount' field as u64..");
 
             assert_eq!(amount, 2);
         }
@@ -123,9 +155,14 @@ fn test_suit_1() {
             assert_eq!(r.content_type(), Some(ContentType::JSON));
             assert_eq!(r.status(), Status::Ok);
 
-            let body = from_str::<Value>(&r.into_string().await.unwrap()).unwrap();
-            let code = body.get("code").unwrap().as_str().unwrap();
-            let data = body.get("data").unwrap().as_array().unwrap();
+            let body = from_str::<Value>(&r.into_string().await.unwrap())
+                .expect("Failed to read request body as JSON..");
+            let code = body.get("code")
+                .expect("Expected response to contain 'code' field..")
+                .as_str().expect("Expected 'code' field to be a string..");
+            let data = body.get("data")
+                .expect("Expected response to contain 'data' field..")
+                .as_array().expect("Expected 'data' field to be a JSON array..");
 
             assert_eq!(code, "no_message");
             assert_eq!(data.len(), 0);
@@ -147,17 +184,22 @@ fn test_suit_2() {
             assert_eq!(r.content_type(), Some(ContentType::JSON));
             assert_eq!(r.status(), Status::Ok);
 
-            let body = from_str::<Value>(&r.into_string().await.unwrap()).unwrap();
-            let code = body.get("code").unwrap().as_str().unwrap();
+            let body = from_str::<Value>(&r.into_string().await.unwrap())
+                .expect("Failed to read request body as JSON..");
+            let code = body.get("code")
+                .expect("Expected response to contain 'code' field..")
+                .as_str().expect("Expected 'code' field to be a string..");
 
             assert_eq!(code, "info_many_items_ok");
 
             // Save id for later.
-            let ids = body.get("item_ids").unwrap().as_array().unwrap();
+            let ids = body.get("item_ids")
+                .expect("Expected response to contain 'item_ids' field..")
+                .as_array().expect("Failed to parse 'item_ids' as an array..");
 
             assert_eq!(ids.len(), 3);
 
-            test_id = ids[0].as_u64().unwrap();
+            test_id = ids[0].as_u64().expect("Failed to parse 'item_ids[0]' as u64..");
         }
 
         {
@@ -168,8 +210,11 @@ fn test_suit_2() {
             assert_eq!(r.content_type(), Some(ContentType::JSON));
             assert_eq!(r.status(), Status::Ok);
 
-            let body = from_str::<Value>(&r.into_string().await.unwrap()).unwrap();
-            let code = body.get("code").unwrap().as_str().unwrap();
+            let body = from_str::<Value>(&r.into_string().await.unwrap())
+                .expect("Failed to read request body as JSON..");
+            let code = body.get("code")
+                .expect("Expected response to contain 'code' field..")
+                .as_str().expect("Expected 'code' field to be a string..");
 
             assert_eq!(code, "info_put_item_ok");
         }
@@ -182,13 +227,20 @@ fn test_suit_2() {
             assert_eq!(r.content_type(), Some(ContentType::JSON));
             assert_eq!(r.status(), Status::Ok);
 
-            let body = from_str::<Value>(&r.into_string().await.unwrap()).unwrap();
-            let code = body.get("code").unwrap().as_str().unwrap();
+            let body = from_str::<Value>(&r.into_string().await.unwrap())
+                .expect("Failed to read request body as JSON..");
+            let code = body.get("code")
+                .expect("Expected response to contain 'code' field..")
+                .as_str().expect("Expected 'code' field to be a string..");
 
             assert_eq!(code, "no_message");
 
-            let content = body.get("data").unwrap().get("content").unwrap();
-            let log = content.get("log").unwrap().as_str().unwrap();
+            let content = body.get("data")
+                .expect("Expected response to contain 'data' field..")
+                .get("content").expect("Expected 'data' to contain 'content' field..");
+            let log = content.get("log")
+                .expect("Expected 'content' to contain 'log' field..")
+                .as_str().expect("Expected 'log' to be a string..");
 
             assert_eq!(log, "New Value");
         }
@@ -201,8 +253,11 @@ fn test_suit_2() {
             assert_eq!(r.content_type(), Some(ContentType::JSON));
             assert_eq!(r.status(), Status::Ok);
 
-            let body = from_str::<Value>(&r.into_string().await.unwrap()).unwrap();
-            let code = body.get("code").unwrap().as_str().unwrap();
+            let body = from_str::<Value>(&r.into_string().await.unwrap())
+                .expect("Failed to read request body as JSON..");
+            let code = body.get("code")
+                .expect("Expected response to contain 'code' field..")
+                .as_str().expect("Expected 'code' field to be a string..");
 
             assert_eq!(code, "info_delete_entry_ok");
         }
@@ -215,23 +270,32 @@ fn test_suit_2() {
             assert_eq!(r.content_type(), Some(ContentType::JSON));
             assert_eq!(r.status(), Status::Ok);
 
-            let body = from_str::<Value>(&r.into_string().await.unwrap()).unwrap();
-            let code = body.get("code").unwrap().as_str().unwrap();
-            let data = body.get("data").unwrap().as_array().unwrap();
+            let body = from_str::<Value>(&r.into_string().await.unwrap())
+                .expect("Failed to read request body as JSON..");
+            let code = body.get("code")
+                .expect("Expected response to contain 'code' field..")
+                .as_str().expect("Expected 'code' field to be a string");
+            let data = body.get("data")
+                .expect("Expected response to contain 'data' field..")
+                .as_array().expect("Failed to parse 'data' as an array..");
 
             assert_eq!(code, "no_message");
             assert_eq!(data.len(), 2);
 
             let _ = data.iter().map(|item| {
-                let raw_id = item.get("content").unwrap().get("id").unwrap();
-                let id = raw_id.as_u64().unwrap();
+                let id = item.get("content")
+                    .expect("Expected response to contain 'content' field..")
+                    .get("id").expect("Expected 'content' to contain 'id' field..")
+                    .as_u64().expect("Failed to parse 'id' as u64..");
                 assert_ne!(test_id.clone(), id);
             });
         }
+
         // Note:
-        // Macro deletes all existing entries on the start of the block, which
-        // means we don't have to clear anything here. Unless, of course, we want
-        // to test deletion.
+        //     Macro deletes all existing entries on the start of the block, which
+        //     means we don't have to clear anything here. Unless, of course, we want
+        //     to test deletion here too.
+        //                                                         - andrew, April 26 2021
     })
 }
 

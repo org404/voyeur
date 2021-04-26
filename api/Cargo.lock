@@ -462,15 +462,15 @@ checksum = "4a1ce40d6fc9764887c2fdc7305c3dcc429ba11ff981c1509416afd5697e4437"
 
 [[package]]
 name = "httpdate"
-version = "0.3.2"
+version = "1.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "494b4d60369511e7dea41cf646832512a94e542f68bb9c49e54518e0f468eb47"
+checksum = "05842d0d43232b23ccb7060ecb0f0626922c21f30012e97b767b30afd4a5d4b9"
 
 [[package]]
 name = "hyper"
-version = "0.14.5"
+version = "0.14.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8bf09f61b52cfcf4c00de50df88ae423d6c02354e385a86341133b5338630ad1"
+checksum = "1e5f105c494081baa3bf9e200b279e27ec1623895cd504c7dbef8d0b080fcf54"
 dependencies = [
  "bytes",
  "futures-channel",
@@ -964,7 +964,7 @@ dependencies = [
 [[package]]
 name = "rocket"
 version = "0.5.0-dev"
-source = "git+https://github.com/SergioBenitez/Rocket.git#e1307ddf48dac14e6a37e526098732327bcb86f0"
+source = "git+https://github.com/SergioBenitez/Rocket.git?rev=c858bd2#c858bd28731dbfa20aaa4d28f3db1c5c21acce37"
 dependencies = [
  "async-trait",
  "atomic",
@@ -999,7 +999,7 @@ dependencies = [
 [[package]]
 name = "rocket_codegen"
 version = "0.5.0-dev"
-source = "git+https://github.com/SergioBenitez/Rocket.git#e1307ddf48dac14e6a37e526098732327bcb86f0"
+source = "git+https://github.com/SergioBenitez/Rocket.git?rev=c858bd2#c858bd28731dbfa20aaa4d28f3db1c5c21acce37"
 dependencies = [
  "devise",
  "glob",
@@ -1012,7 +1012,7 @@ dependencies = [
 [[package]]
 name = "rocket_contrib"
 version = "0.5.0-dev"
-source = "git+https://github.com/SergioBenitez/Rocket.git#e1307ddf48dac14e6a37e526098732327bcb86f0"
+source = "git+https://github.com/SergioBenitez/Rocket.git?rev=c858bd2#c858bd28731dbfa20aaa4d28f3db1c5c21acce37"
 dependencies = [
  "log",
  "postgres",
@@ -1028,7 +1028,7 @@ dependencies = [
 [[package]]
 name = "rocket_contrib_codegen"
 version = "0.5.0-dev"
-source = "git+https://github.com/SergioBenitez/Rocket.git#e1307ddf48dac14e6a37e526098732327bcb86f0"
+source = "git+https://github.com/SergioBenitez/Rocket.git?rev=c858bd2#c858bd28731dbfa20aaa4d28f3db1c5c21acce37"
 dependencies = [
  "devise",
  "quote",
@@ -1037,7 +1037,7 @@ dependencies = [
 [[package]]
 name = "rocket_http"
 version = "0.5.0-dev"
-source = "git+https://github.com/SergioBenitez/Rocket.git#e1307ddf48dac14e6a37e526098732327bcb86f0"
+source = "git+https://github.com/SergioBenitez/Rocket.git?rev=c858bd2#c858bd28731dbfa20aaa4d28f3db1c5c21acce37"
 dependencies = [
  "cookie",
  "either",
@@ -1298,9 +1298,9 @@ checksum = "1e81da0851ada1f3e9d4312c704aa4f8806f0f9d69faaf8df2f3464b4a9437c2"
 
 [[package]]
 name = "syn"
-version = "1.0.69"
+version = "1.0.70"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "48fe99c6bd8b1cc636890bcc071842de909d902c81ac7dab53ba33c421ab8ffb"
+checksum = "b9505f307c872bab8eb46f77ae357c8eba1fdacead58ee5a850116b1d7f82883"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -1406,9 +1406,9 @@ dependencies = [
 
 [[package]]
 name = "tokio-postgres"
-version = "0.7.1"
+version = "0.7.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "98779a950cb6ef76f8ad71c411176115c5c1200a83eeeca4dd9f61e3fc4836c8"
+checksum = "2d2b1383c7e4fb9a09e292c7c6afb7da54418d53b045f1c1fac7a911411a2b8b"
 dependencies = [
  "async-trait",
  "byteorder",

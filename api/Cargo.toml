@@ -7,8 +7,8 @@ edition = "2018"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-rocket = { git = "https://github.com/SergioBenitez/Rocket.git" }
-rocket_contrib = { git = "https://github.com/SergioBenitez/Rocket", features = ["postgres_pool"] }
+rocket = { git = "https://github.com/SergioBenitez/Rocket.git", rev = "c858bd2" }
+rocket_contrib = { git = "https://github.com/SergioBenitez/Rocket", rev = "c858bd2", features = ["postgres_pool"] }
 serde = { version = "1.0.125", features = ["derive"] }
 serde_json = "1.0.64"
 
