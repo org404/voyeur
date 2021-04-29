@@ -11,7 +11,8 @@ use super::rocket;
 static DB_LOCK: parking_lot::Mutex<()> = parking_lot::const_mutex(());
 
 
-// Macro for running async block in a blocking way.
+/// Macro for running async block in a blocking way. We need to do this, because
+/// our integration tests assume sequential processing of block after block.
 macro_rules! run_test {
     (|$client:ident, $conn:ident| $block:expr) => ({
         let _lock = DB_LOCK.lock();
@@ -30,6 +31,12 @@ macro_rules! run_test {
 }
 
 
+/// Following test suit verifies API availability for the following path:
+///     - Add one entry
+///     - Add another entry
+///     - Query first page of entries
+///     - Delete all entries
+///     - Query entries again
 #[test]
 fn test_suit_1() {
     run_test!(|client, _conn| {
@@ -42,6 +49,7 @@ fn test_suit_1() {
             let r = client.post("/api/v1/entries?namespace=test_name_alpha").header(ContentType::JSON)
                 .body("{\"text\": \"This is some test data!\"}").dispatch().await;
 
+            // We expect 200 JSON response.
             assert_eq!(r.content_type(), Some(ContentType::JSON));
             assert_eq!(r.status(), Status::Ok);
 
@@ -51,6 +59,7 @@ fn test_suit_1() {
                 .expect("Expected response to contain 'code' field..")
                 .as_str().expect("Expected 'code' field to be a string..");
 
+            // Verify code matches successful 200 response code for this endpoint.
             assert_eq!(code, "info_one_item_ok");
 
             // Save id for later.
@@ -64,6 +73,7 @@ fn test_suit_1() {
             let r = client.post("/api/v1/entries?namespace=test_name_alpha").header(ContentType::JSON)
                 .body("{\"text\": \"This is second test data!\"}").dispatch().await;
 
+            // We expect 200 JSON response.
             assert_eq!(r.content_type(), Some(ContentType::JSON));
             assert_eq!(r.status(), Status::Ok);
 
@@ -73,6 +83,7 @@ fn test_suit_1() {
                 .expect("Expected response to contain 'code' field..")
                 .as_str().expect("Expected 'code' field to be a string..");
 
+            // Verify code matches successful 200 response code for this endpoint.
             assert_eq!(code, "info_one_item_ok");
 
             // Save id for later.
@@ -86,6 +97,7 @@ fn test_suit_1() {
             let r = client.get("/api/v1/entries?page=0&namespace=test_name_alpha")
                 .header(ContentType::JSON).dispatch().await;
 
+            // We expect 200 JSON response.
             assert_eq!(r.content_type(), Some(ContentType::JSON));
             assert_eq!(r.status(), Status::Ok);
 
@@ -98,7 +110,9 @@ fn test_suit_1() {
                 .expect("Expected response to contain 'data' field..")
                 .as_array().expect("Expected 'data' field to be a JSON array..");
 
+            // Verify code matches successful 200 response code for this endpoint.
             assert_eq!(code, "no_message");
+            // Verify response contains array of length two.
             assert_eq!(data.len(), 2);
 
             let _id1 = data[0].get("id")
@@ -109,7 +123,9 @@ fn test_suit_1() {
                 .get("text").expect("Expected 'content' to contain 'text' field..")
                 .as_str().expect("Expected 'text' field to be a string..");
 
+            // Verify id of element 0 matches first added item.
             assert_eq!(_id1, id1);
+            // Verify text of element 0 matches text from first added item.
             assert_eq!(text1, "This is some test data!");
 
             let _id2 = data[1].get("id")
@@ -120,7 +136,9 @@ fn test_suit_1() {
                 .get("text").expect("Expected 'content' to contain 'text' field..")
                 .as_str().expect("Expected 'text' field to be a string..");
 
+            // Verify id of element 1 matches second added item.
             assert_eq!(_id2, id2);
+            // Verify text of element 1 matches text from second added item.
             assert_eq!(text2, "This is second test data!");
         }
 
@@ -129,6 +147,7 @@ fn test_suit_1() {
             let r = client.delete("/api/v1/entries?namespace=test_name_alpha")
                 .header(ContentType::JSON).dispatch().await;
 
+            // We expect 200 JSON response.
             assert_eq!(r.content_type(), Some(ContentType::JSON));
             assert_eq!(r.status(), Status::Ok);
 
@@ -138,12 +157,14 @@ fn test_suit_1() {
                 .expect("Expected response to contain 'code' field..")
                 .as_str().expect("Expected 'code' field to be a string..");
 
+            // Verify code matches successful 200 response code for this endpoint.
             assert_eq!(code, "info_delete_entries_ok");
 
             let amount = body.get("amount")
                 .expect("Expected response to contain 'amount' field..")
                 .as_u64().expect("Failed to parse 'amount' field as u64..");
 
+            // Verify that we deleted two previously added elements.
             assert_eq!(amount, 2);
         }
 
@@ -152,6 +173,7 @@ fn test_suit_1() {
             let r = client.get("/api/v1/entries?page=0&namespace=test_name_alpha")
                 .header(ContentType::JSON).dispatch().await;
 
+            // We expect 200 JSON response.
             assert_eq!(r.content_type(), Some(ContentType::JSON));
             assert_eq!(r.status(), Status::Ok);
 
@@ -164,23 +186,33 @@ fn test_suit_1() {
                 .expect("Expected response to contain 'data' field..")
                 .as_array().expect("Expected 'data' field to be a JSON array..");
 
+            // Verify code matches successful 200 response code for this endpoint.
             assert_eq!(code, "no_message");
+            // Verify that previous deletion were successful and elements were really
+            // deleted.
             assert_eq!(data.len(), 0);
         }
     })
 }
 
 
+/// Following test suit verifies API availability for the following path:
+///     - Add multiple entries
+///     - Update one entry
+///     - Query single entry
+///     - Delete single entry
+///     - Query remaining entries
 #[test]
 fn test_suit_2() {
     run_test!(|client, _conn| {
         let test_id: u64;
 
         {
-            // Creating 3 entries ...
+            // Creating 3 entries, verify that JSON array is treated properly as multiple entries ...
             let r = client.post("/api/v1/entries?namespace=test_name_alpha").header(ContentType::JSON)
                 .body("[{\"log\": \"Value 1\"}, {\"log\": \"Value 2\"}, {\"log\": \"Last value\"}]").dispatch().await;
 
+            // We expect 200 JSON response.
             assert_eq!(r.content_type(), Some(ContentType::JSON));
             assert_eq!(r.status(), Status::Ok);
 
@@ -190,6 +222,7 @@ fn test_suit_2() {
                 .expect("Expected response to contain 'code' field..")
                 .as_str().expect("Expected 'code' field to be a string..");
 
+            // Verify code matches successful 200 response code for this endpoint.
             assert_eq!(code, "info_many_items_ok");
 
             // Save id for later.
@@ -197,8 +230,10 @@ fn test_suit_2() {
                 .expect("Expected response to contain 'item_ids' field..")
                 .as_array().expect("Failed to parse 'item_ids' as an array..");
 
+            // Verify that 3 items were created.
             assert_eq!(ids.len(), 3);
 
+            // Save first id in a list to update later.
             test_id = ids[0].as_u64().expect("Failed to parse 'item_ids[0]' as u64..");
         }
 
@@ -207,6 +242,7 @@ fn test_suit_2() {
             let r = client.put(format!("/api/v1/entries/{}?namespace=test_name_alpha", test_id))
                 .header(ContentType::JSON).body("{\"log\": \"New Value\"}").dispatch().await;
 
+            // We expect 200 JSON response.
             assert_eq!(r.content_type(), Some(ContentType::JSON));
             assert_eq!(r.status(), Status::Ok);
 
@@ -216,6 +252,7 @@ fn test_suit_2() {
                 .expect("Expected response to contain 'code' field..")
                 .as_str().expect("Expected 'code' field to be a string..");
 
+            // Verify code matches successful 200 response code for this endpoint.
             assert_eq!(code, "info_put_item_ok");
         }
 
@@ -224,6 +261,7 @@ fn test_suit_2() {
             let r = client.get(format!("/api/v1/entries/{}?namespace=test_name_alpha", test_id))
                 .header(ContentType::JSON).dispatch().await;
 
+            // We expect 200 JSON response.
             assert_eq!(r.content_type(), Some(ContentType::JSON));
             assert_eq!(r.status(), Status::Ok);
 
@@ -233,6 +271,7 @@ fn test_suit_2() {
                 .expect("Expected response to contain 'code' field..")
                 .as_str().expect("Expected 'code' field to be a string..");
 
+            // Verify code matches successful 200 response code for this endpoint.
             assert_eq!(code, "no_message");
 
             let content = body.get("data")
@@ -242,6 +281,7 @@ fn test_suit_2() {
                 .expect("Expected 'content' to contain 'log' field..")
                 .as_str().expect("Expected 'log' to be a string..");
 
+            // Verify that value was updated.
             assert_eq!(log, "New Value");
         }
 
@@ -250,6 +290,7 @@ fn test_suit_2() {
             let r = client.delete(format!("/api/v1/entries/{}?namespace=test_name_alpha", test_id))
                 .header(ContentType::JSON).dispatch().await;
 
+            // We expect 200 JSON response.
             assert_eq!(r.content_type(), Some(ContentType::JSON));
             assert_eq!(r.status(), Status::Ok);
 
@@ -259,6 +300,7 @@ fn test_suit_2() {
                 .expect("Expected response to contain 'code' field..")
                 .as_str().expect("Expected 'code' field to be a string..");
 
+            // Verify code matches successful 200 response code for this endpoint.
             assert_eq!(code, "info_delete_entry_ok");
         }
 
@@ -267,6 +309,7 @@ fn test_suit_2() {
             let r = client.get("/api/v1/entries?page=0&namespace=test_name_alpha")
                 .header(ContentType::JSON).dispatch().await;
 
+            // We expect 200 JSON response.
             assert_eq!(r.content_type(), Some(ContentType::JSON));
             assert_eq!(r.status(), Status::Ok);
 
@@ -279,14 +322,18 @@ fn test_suit_2() {
                 .expect("Expected response to contain 'data' field..")
                 .as_array().expect("Failed to parse 'data' as an array..");
 
+            // Verify code matches successful 200 response code for this endpoint.
             assert_eq!(code, "no_message");
+            // Verify that one item was successfully deleted.
             assert_eq!(data.len(), 2);
 
+            // Verify that we deleted correct item.
             let _ = data.iter().map(|item| {
                 let id = item.get("content")
                     .expect("Expected response to contain 'content' field..")
                     .get("id").expect("Expected 'content' to contain 'id' field..")
                     .as_u64().expect("Failed to parse 'id' as u64..");
+                // ID shouldn't match the deleted one.
                 assert_ne!(test_id.clone(), id);
             });
         }

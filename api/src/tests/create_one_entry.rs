@@ -31,6 +31,7 @@ async fn test_bad() {
         assert_eq!(r1.content_type(), Some(ContentType::HTML));
         assert_eq!(r2.content_type(), Some(ContentType::HTML));
         assert_eq!(r3.content_type(), Some(ContentType::HTML));
+        // Parsing errors handled by us.
         assert_eq!(r4.content_type(), Some(ContentType::JSON));
         assert_eq!(r5.content_type(), Some(ContentType::JSON));
         assert_eq!(r6.content_type(), Some(ContentType::JSON));

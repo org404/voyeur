@@ -10,7 +10,7 @@ async fn test_bad() {
 
     {
         // Here we test entry ID bad values. Note that we don't need to add
-        // request body here, because url argument is matched before.
+        // request body here, because url argument is matched first.
         let (r1, r2, r3, r4, r5) = tokio::join!(
             client.put("/api/v1/entries/-1")
                 .header(Header::new("X-Namespace", "a"))

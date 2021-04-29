@@ -1,5 +1,5 @@
 use rocket::local::asynchronous::Client;
-use rocket::http::Status;
+use rocket::http::{ContentType, Status};
 
 
 #[rocket::async_test]
@@ -7,6 +7,7 @@ async fn test_health_endpoint() {
     let client = Client::tracked(super::rocket()).await.unwrap();
 
     let resp = client.get("/api/v1/health").dispatch().await;
+    assert_eq!(resp.content_type(), Some(ContentType::JSON));
     assert_eq!(resp.status(), Status::Ok);
 
     let rbody = resp.into_string().await.unwrap();

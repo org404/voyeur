@@ -4,13 +4,32 @@ version = 3
 
 [[package]]
 name = "api"
-version = "0.3.0"
+version = "0.3.1"
 dependencies = [
  "parking_lot",
  "rocket",
  "rocket_contrib",
  "serde",
  "serde_json",
+]
+
+[[package]]
+name = "async-stream"
+version = "0.3.0"
+source = "git+https://github.com/SergioBenitez/async-stream.git?rev=c46ada9#c46ada948e0d4800393836f57eb2a3db516beb1e"
+dependencies = [
+ "async-stream-impl",
+ "futures-core",
+]
+
+[[package]]
+name = "async-stream-impl"
+version = "0.3.0"
+source = "git+https://github.com/SergioBenitez/async-stream.git?rev=c46ada9#c46ada948e0d4800393836f57eb2a3db516beb1e"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn",
 ]
 
 [[package]]
@@ -530,9 +549,9 @@ checksum = "e2abad23fbc42b3700f2f279844dc832adb2b2eb069b2df918f455c4e18cc646"
 
 [[package]]
 name = "libc"
-version = "0.2.93"
+version = "0.2.94"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9385f66bf6105b241aa65a61cb923ef20efc665cb9f9bb50ac2f0c4b7f378d41"
+checksum = "18794a8ad5b29321f790b55d93dfba91e125cb1a9edbd4f8e3150acc771c1a5e"
 
 [[package]]
 name = "lock_api"
@@ -964,8 +983,9 @@ dependencies = [
 [[package]]
 name = "rocket"
 version = "0.5.0-dev"
-source = "git+https://github.com/SergioBenitez/Rocket.git?rev=c858bd2#c858bd28731dbfa20aaa4d28f3db1c5c21acce37"
+source = "git+https://github.com/SergioBenitez/Rocket.git#336a03e27f43d0ec3b02d8b99e10d2df202523ad"
 dependencies = [
+ "async-stream",
  "async-trait",
  "atomic",
  "atty",
@@ -999,7 +1019,7 @@ dependencies = [
 [[package]]
 name = "rocket_codegen"
 version = "0.5.0-dev"
-source = "git+https://github.com/SergioBenitez/Rocket.git?rev=c858bd2#c858bd28731dbfa20aaa4d28f3db1c5c21acce37"
+source = "git+https://github.com/SergioBenitez/Rocket.git#336a03e27f43d0ec3b02d8b99e10d2df202523ad"
 dependencies = [
  "devise",
  "glob",
@@ -1012,7 +1032,7 @@ dependencies = [
 [[package]]
 name = "rocket_contrib"
 version = "0.5.0-dev"
-source = "git+https://github.com/SergioBenitez/Rocket.git?rev=c858bd2#c858bd28731dbfa20aaa4d28f3db1c5c21acce37"
+source = "git+https://github.com/SergioBenitez/Rocket.git#336a03e27f43d0ec3b02d8b99e10d2df202523ad"
 dependencies = [
  "log",
  "postgres",
@@ -1028,7 +1048,7 @@ dependencies = [
 [[package]]
 name = "rocket_contrib_codegen"
 version = "0.5.0-dev"
-source = "git+https://github.com/SergioBenitez/Rocket.git?rev=c858bd2#c858bd28731dbfa20aaa4d28f3db1c5c21acce37"
+source = "git+https://github.com/SergioBenitez/Rocket.git#336a03e27f43d0ec3b02d8b99e10d2df202523ad"
 dependencies = [
  "devise",
  "quote",
@@ -1037,7 +1057,7 @@ dependencies = [
 [[package]]
 name = "rocket_http"
 version = "0.5.0-dev"
-source = "git+https://github.com/SergioBenitez/Rocket.git?rev=c858bd2#c858bd28731dbfa20aaa4d28f3db1c5c21acce37"
+source = "git+https://github.com/SergioBenitez/Rocket.git#336a03e27f43d0ec3b02d8b99e10d2df202523ad"
 dependencies = [
  "cookie",
  "either",
@@ -1298,9 +1318,9 @@ checksum = "1e81da0851ada1f3e9d4312c704aa4f8806f0f9d69faaf8df2f3464b4a9437c2"
 
 [[package]]
 name = "syn"
-version = "1.0.70"
+version = "1.0.71"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b9505f307c872bab8eb46f77ae357c8eba1fdacead58ee5a850116b1d7f82883"
+checksum = "ad184cc9470f9117b2ac6817bfe297307418819ba40552f9b3846f05c33d5373"
 dependencies = [
  "proc-macro2",
  "quote",
