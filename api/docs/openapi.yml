@@ -1,0 +1,364 @@
+swagger: "2.0"
+info:
+  description: This is Voyeur project api
+  version: 0.3.0
+  title: Voyeur API
+  # put the contact info for your development or API team
+  #contact:
+  #  email: you@your-company.com
+
+  #license:
+  #  name: Apache 2.0
+  #  url: http://www.apache.org/licenses/LICENSE-2.0.html
+
+# tags are used for organizing operations
+tags:
+- name: entries
+  description: Store for any entries
+
+paths:
+  /entries:
+    get:
+      tags:
+      - entries
+      summary: query entries
+      operationId: queryEntries
+      description: |
+        By passing in page number you can query entries from the database.
+      produces:
+      - application/json
+      parameters:
+      - in: query
+        name: page
+        description: Pass page number to query entries from database.
+        # No unsigned integer types, sigh.
+        type: integer
+        format: u32
+        minimum: 0
+        maximum: 4294967295
+        required: true
+      - in: query
+        name: page_size
+        description: Set maximum number of entries to return.
+        # No unsigned integer types, sigh.
+        type: integer
+        format: u16
+        minimum: 0
+        maximum: 65535
+        required: false
+      - in: query
+        name: namespace
+        description: |
+            Set namespace to get entries from. You must set namespace, using either query or header.
+        type: string
+        # required: false
+      - in: header
+        name: X-Namespace
+        description: |
+            Set namespace to get entries from. You must set namespace, using either query or header.
+        type: string
+        # required: false
+      responses:
+        200:
+          description: query entries from database
+          schema:
+            type: array
+            items:
+              $ref: "#/definitions/Entry"
+        400:
+          description: bad input parameter
+          schema:
+            type: object
+            properties:
+              code:
+                type: string
+                example: "err_namespace_empty"
+              message:
+                type: string
+                example: "You must provide 'X-Namespace' header or 'namespace' URL argument with request!"
+    post:
+      tags:
+      - entries
+      summary: add single entry
+      operationId: addSingleEntry
+      description: Adds an entry to the database 
+      consumes:
+      - application/json
+      produces:
+      - application/json
+      parameters:
+      - in: body
+        name: Json
+        description: Json to store as entry.
+        schema:
+          $ref: "#/definitions/Json"
+      responses:
+        200:
+          description: item created
+          schema:
+            type: object
+            properties:
+              code:
+                type: string
+                example: "info_one_item_ok"
+              message:
+                type: string
+                example: "Successfully created new entry!"
+              item_id:
+                type: integer
+                format: u64
+                minimum: 0
+                maximum: 18446744073709551615
+                example: 3
+        400:
+          description: invalid input, object invalid
+          schema:
+            type: object
+            properties:
+              code:
+                type: string
+                example: "err_namespace_empty"
+              message:
+                type: string
+                example: "You must provide 'X-Namespace' header or 'namespace' URL argument with request!"
+        #409:
+        #  description: an existing item already exists
+    delete:
+      tags:
+      - entries
+      summary: delete all entries
+      parameters:
+      - in: query
+        name: namespace
+        description: |
+            Set namespace to get entries from. You must set namespace, using either query or header.
+        type: string
+        # required: false
+      - in: header
+        name: X-Namespace
+        description: |
+            Set namespace to get entries from. You must set namespace, using either query or header.
+        type: string
+        # required: false
+      responses:
+        200:
+          description: query entries from database
+          schema:
+            type: object
+            properties:
+              code:
+                type: string
+                example: "info_delete_entries_ok"
+              message:
+                type: string
+                example: "Successfully deleted all entries for namespace 'test name 123'!"
+              namespace:
+                type: string
+                example: "test name 123"
+              amount:
+                type: integer
+                format: u64
+                minimum: 0
+                maximum: 18446744073709551615
+                example: 42
+        400:
+          description: bad input parameter
+          schema:
+            type: object
+            properties:
+              code:
+                type: string
+                example: "err_namespace_empty"
+              message:
+                type: string
+                example: "You must provide 'X-Namespace' header or 'namespace' URL argument with request!"
+  /entries/{id}:
+    get:
+      tags:
+      - entries
+      summary: query entry by id
+      operationId: queryEntry
+      description: |
+        Query specific entry by id.
+      produces:
+      - application/json
+      parameters:
+      - in: path
+        name: id
+        description: |
+            Set entry id.
+        type: integer
+        format: u64
+        minimum: 0
+        maximum: 18446744073709551615
+        required: true
+      - in: query
+        name: namespace
+        description: |
+            Set namespace to get entries from. You must set namespace, using either query or header.
+        type: string
+        # required: false
+      - in: header
+        name: X-Namespace
+        description: |
+            Set namespace to get entries from. You must set namespace, using either query or header.
+        type: string
+        # required: false
+      responses:
+        200:
+          description: query entries from database
+          schema:
+            type: array
+            items:
+              $ref: "#/definitions/Entry"
+        400:
+          description: bad input parameter
+          schema:
+            type: object
+            properties:
+              code:
+                type: string
+                example: "err_namespace_empty"
+              message:
+                type: string
+                example: "You must provide 'X-Namespace' header or 'namespace' URL argument with request!"
+    put:
+      tags:
+      - entries
+      summary: create/update single entry
+      operationId: putSingleEntry
+      description: Adds an entry to the database 
+      consumes:
+      - application/json
+      produces:
+      - application/json
+      parameters:
+      - in: path
+        name: id
+        description: |
+            Set entry id.
+        type: integer
+        format: u64
+        minimum: 0
+        maximum: 18446744073709551615
+        required: true
+      - in: body
+        name: Json
+        description: Json to store as entry.
+        schema:
+          $ref: "#/definitions/Json"
+      responses:
+        200:
+          description: item created
+          schema:
+            type: object
+            properties:
+              code:
+                type: string
+                example: "info_put_item_ok"
+              message:
+                type: string
+                example: "Successfully created/update new entry!"
+              item_id:
+                type: integer
+                format: u64
+                minimum: 0
+                maximum: 18446744073709551615
+                example: 3
+        400:
+          description: invalid input, object invalid
+          schema:
+            type: object
+            properties:
+              code:
+                type: string
+                example: "err_namespace_empty"
+              message:
+                type: string
+                example: "You must provide 'X-Namespace' header or 'namespace' URL argument with request!"
+    delete:
+      tags:
+      - entries
+      summary: delete entry by id
+      parameters:
+      - in: path
+        name: id
+        description: |
+            Delete entry by id.
+        type: integer
+        format: u64
+        minimum: 0
+        maximum: 18446744073709551615
+        required: true
+      - in: query
+        name: namespace
+        description: |
+            Set namespace to get entries from. You must set namespace, using either query or header.
+        type: string
+        # required: false
+      - in: header
+        name: X-Namespace
+        description: |
+            Set namespace to get entries from. You must set namespace, using either query or header.
+        type: string
+        # required: false
+      responses:
+        200:
+          description: query entries from database
+          schema:
+            type: object
+            properties:
+              code:
+                type: string
+                example: "info_delete_entry_ok"
+              message:
+                type: string
+                example: "Successfully deleted an entry of ID '42' for namespace 'test name 123'!"
+              namespace:
+                type: string
+                example: "test name 123"
+              id:
+                type: integer
+                format: u64
+                minimum: 0
+                maximum: 18446744073709551615
+                example: 42
+        400:
+          description: bad input parameter
+          schema:
+            type: object
+            properties:
+              code:
+                type: string
+                example: "err_namespace_empty"
+              message:
+                type: string
+                example: "You must provide 'X-Namespace' header or 'namespace' URL argument with request!"
+
+definitions:
+  Entry:
+    type: object
+    required:
+    - id
+    - content
+    properties:
+      id:
+        type: integer
+        format: u64
+        minimum: 0
+        maximum: 18446744073709551615
+        example: 13
+      content:
+        type: object
+        example: {"log": "2006-02-08 22:20:02 192.168.0.1  Protocol problem: connection reset"}
+  Json:
+    type: object
+    example: {"log": "2006-02-08 22:20:02 192.168.0.1  Protocol problem: connection reset"}
+
+# host: voyeur.example.com
+# basePath: /api/v1
+schemes:
+ - https
+# Added by API Auto Mocking Plugin
+host: virtserver.swaggerhub.com
+basePath: /kittyandrew/Voyeur/0.3.0
