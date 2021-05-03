@@ -1,5 +1,5 @@
+use rocket::http::{ContentType, Status, Header};
 use rocket::local::asynchronous::Client;
-use rocket::http::{ContentType, Status};
 use crate::model::{ApiDatabase, Entry};
 use serde_json::{from_str, Value};
 use super::rocket;
@@ -31,7 +31,7 @@ macro_rules! run_test {
 }
 
 
-/// Following test suit verifies API availability for the following path:
+/// Following test suit verifies API availability for the story below:
 ///     - Add one entry
 ///     - Add another entry
 ///     - Query first page of entries
@@ -196,7 +196,7 @@ fn test_suit_1() {
 }
 
 
-/// Following test suit verifies API availability for the following path:
+/// Following test suit verifies API availability for the story below:
 ///     - Add multiple entries
 ///     - Update one entry
 ///     - Query single entry
@@ -343,6 +343,117 @@ fn test_suit_2() {
         //     means we don't have to clear anything here. Unless, of course, we want
         //     to test deletion here too.
         //                                                         - andrew, April 26 2021
+    })
+}
+
+
+/// Following test suit verifies API availability for the story below:
+///     - Add single 5MB entry
+///     - Add three 4MB entry
+///     - Update one entry to 10MB size
+///     - Query all entries
+#[test]
+fn test_suit_3() {
+    run_test!(|client, _conn| {
+        let test_id: u64;
+
+        {
+            // Creating single huge 5 MB entry using according header.
+            let r = client.post("/api/v1/entries?namespace=test_name_alpha").header(ContentType::JSON)
+                .header(Header::new("X-Content-Length", format!("{}", 5 * 1024 * 1024 + 2)))  // 5MB + 2 bytes for quotes
+                .body(format!("\"{}\"", "a".repeat(5 * 1024 * 1024))).dispatch().await;
+
+            // We expect 200 JSON response.
+            assert_eq!(r.content_type(), Some(ContentType::JSON));
+            assert_eq!(r.status(), Status::Ok);
+
+            let body = from_str::<Value>(&r.into_string().await.unwrap())
+                .expect("Failed to read request body as JSON..");
+            let code = body.get("code")
+                .expect("Expected response to contain 'code' field..")
+                .as_str().expect("Expected 'code' field to be a string..");
+
+            // Verify code matches successful 200 response code for this endpoint.
+            assert_eq!(code, "info_one_item_ok");
+
+            // Save id for later.
+            test_id = body.get("item_id")
+                .expect("Expected response to contain 'item_id' field..")
+                .as_u64().expect("Failed to parse 'item_id' as u64..");
+        }
+
+        {
+            // Creating three 4 MB entries using according header.
+            let r = client.post("/api/v1/entries?namespace=test_name_alpha").header(ContentType::JSON)
+                .header(Header::new("X-Content-Length", format!("{}", 12 * 1024 * 1024 + 12)))  // 12MB + 12 bytes for additional data
+                .body(format!(
+                    "[\"{}\", \"{}\", \"{}\"]", "a".repeat(4 * 1024 * 1024),
+                    "b".repeat(4 * 1024 * 1024), "c".repeat(4 * 1024 * 1024),
+                )).dispatch().await;
+
+            // We expect 200 JSON response.
+            assert_eq!(r.content_type(), Some(ContentType::JSON));
+            assert_eq!(r.status(), Status::Ok);
+
+            let body = from_str::<Value>(&r.into_string().await.unwrap())
+                .expect("Failed to read request body as JSON..");
+            let code = body.get("code")
+                .expect("Expected response to contain 'code' field..")
+                .as_str().expect("Expected 'code' field to be a string..");
+
+            // Verify code matches successful 200 response code for this endpoint.
+            assert_eq!(code, "info_many_items_ok");
+        }
+
+        {
+            // Put even bigger (10MB) entry in the place of existing one ...
+            let r = client.put(format!("/api/v1/entries/{}?namespace=test_name_alpha", test_id)).header(ContentType::JSON)
+                .header(Header::new("X-Content-Length", format!("{}", 10 * 1024 * 1024 + 2)))  // 10MB + 2 bytes for quotes
+                .body(format!("\"{}\"", "z".repeat(10 * 1024 * 1024))).dispatch().await;
+
+            // We expect 200 JSON response.
+            assert_eq!(r.content_type(), Some(ContentType::JSON));
+            assert_eq!(r.status(), Status::Ok);
+
+            let body = from_str::<Value>(&r.into_string().await.unwrap())
+                .expect("Failed to read request body as JSON..");
+            let code = body.get("code")
+                .expect("Expected response to contain 'code' field..")
+                .as_str().expect("Expected 'code' field to be a string..");
+
+            // Verify code matches successful 200 response code for this endpoint.
+            assert_eq!(code, "info_put_item_ok");
+        }
+
+        {
+            // Query page of entries to verify that previous request worked ...
+            let r = client.get("/api/v1/entries?page=0&namespace=test_name_alpha")
+                .header(ContentType::JSON).dispatch().await;
+
+            // We expect 200 JSON response.
+            assert_eq!(r.content_type(), Some(ContentType::JSON));
+            assert_eq!(r.status(), Status::Ok);
+
+            let body = from_str::<Value>(&r.into_string().await.unwrap())
+                .expect("Failed to read request body as JSON..");
+            let code = body.get("code")
+                .expect("Expected response to contain 'code' field..")
+                .as_str().expect("Expected 'code' field to be a string");
+            let data = body.get("data")
+                .expect("Expected response to contain 'data' field..")
+                .as_array().expect("Failed to parse 'data' as an array..");
+
+            // Verify code matches successful 200 response code for this endpoint.
+            assert_eq!(code, "no_message");
+            // Verify that one item was successfully deleted.
+            assert_eq!(data.len(), 4);
+        }
+
+        // Note:
+        //     Macro deletes all existing entries on the start of the block, which
+        //     means we don't have to clear anything here. Unless, of course, we want
+        //     to test deletion here too.
+        //                                                         - andrew, May 3 2021
     })
 }
 
