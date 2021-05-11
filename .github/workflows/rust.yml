@@ -1,15 +1,16 @@
 name: Rust
 
-on: [push]
+on: [push, pull_request]
 
 env:
   CARGO_TERM_COLOR: always
 
 jobs:
-  build:
+  testing:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v1
+    - name: Check out repository
+      uses: actions/checkout@v1
     
     - name: Install latest nightly toolchain
       uses: actions-rs/toolchain@v1
@@ -29,3 +30,19 @@ jobs:
     - name: Run test script
       working-directory: ./api
       run: ./test.sh
+
+  #heroku-deploy:
+  #  needs: testing
+  #  runs-on: ubuntu-latest
+  #  if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+  #  steps:
+  #    - name: Check out repository
+  #      uses: actions/checkout@v2
+  #
+  #    - name: Deploy to Heroku
+  #      uses: akhileshns/heroku-deploy@v3.12.12
+  #      with:
+  #        heroku_api_key: ${{ secrets.HEROKU_API_KEY }}
+  #        heroku_app_name: ${{ secrets.HEROKU_APP_NAME }}
+  #        heroku_email: ${{ secrets.HEROKU_EMAIL }}
+
