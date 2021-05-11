@@ -32,13 +32,27 @@ pub async fn get_entry_by_id(namespace: Namespace, id: u64, conn: ApiDatabase) -
 }
 
 
+#[get("/?<page>&<query>", rank = 1)]
+pub async fn get_query_content(namespace: Namespace, query: String, page: u32, page_size: PageSize, conn: ApiDatabase) -> JsonValue {
+    json!({
+        "code": "no_message",
+        "namespace": &namespace.0,
+        "page_number": page.clone(),
+        "page_size": page_size.0.clone(),
+        "data": conn.run(
+            move |c| Entry::get_query(c, namespace.0, page, page_size.0, query)
+        ).await
+    })
+}
+
+
 /// This endpoint is used to receive a paginated JSON array of entries. Entry is an object
 /// containing id and content, example: {"id": 4, "content": <your_json>}. For this endpoint
 /// you must provide namespace (url argument <namespace> or header "X-Namespace", of type <String>)
 /// and page (url argument <page>, of type unsigned 32-bit integer) values. Optionally, you can
 /// specify a page size (url argument <page_size> or header "X-PAGE-SIZE", of type unsigned 16-bit
 /// integer).
-#[get("/?<page>")]
+#[get("/?<page>", rank = 2)]
 pub async fn get_paginated_entries(namespace: Namespace, page: u32, page_size: PageSize, conn: ApiDatabase) -> JsonValue {
     json!({
         "code": "no_message",

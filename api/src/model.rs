@@ -45,24 +45,24 @@ impl Entry {
         }
     }
 
-    /*
-    pub fn get_all(c: &mut postgres::Client, namespace: String) -> Vec<EntryResponse> {
+    pub fn get_page(c: &mut postgres::Client, namespace: String, page: u32, page_size: u16) -> Vec<EntryResponse> {
         c.query(
-            "SELECT * FROM entries WHERE namespace = $1",
-            &[&namespace]
+            "SELECT * FROM entries WHERE namespace = $1 \
+             ORDER BY id ASC LIMIT $2 OFFSET $3",
+            &[&namespace, &(page_size as i64), &(page as i64 * page_size as i64)]
         )
         .unwrap()
         .iter()
         .map(|row| Self::from_row(row))
         .collect()
     }
-    */
 
-    pub fn get_page(c: &mut postgres::Client, namespace: String, page: u32, page_size: u16) -> Vec<EntryResponse> {
+    pub fn get_query(c: &mut postgres::Client, namespace: String, page: u32, page_size: u16, query: String) -> Vec<EntryResponse> {
         c.query(
-            "SELECT * FROM entries WHERE namespace = $1 \
-             ORDER BY id ASC LIMIT $2 OFFSET $3",
-            &[&namespace, &(page_size as i64), &(page as i64 * page_size as i64)]
+            "SELECT * FROM entries WHERE namespace = $1 AND content LIKE $2 \
+             ORDER BY id ASC LIMIT $3 OFFSET $4",
+            // Here we use format to add postgres-specific syntax for partial matching. It's important that this is done in the input data, before being sanitized for vulnarabilities.
+            &[&namespace, &format!("%{}%", query), &(page_size as i64), &(page as i64 * page_size as i64)]
         )
         .unwrap()
         .iter()

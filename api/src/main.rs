@@ -21,6 +21,7 @@ fn rocket() -> rocket::Rocket<rocket::Build> {
     rocket::build()
         .mount("/api/v1/entries", routes![
             entries::get_entry_by_id,
+            entries::get_query_content,
             entries::get_paginated_entries,
             entries::create_one_entry,
             entries::create_many_entries,

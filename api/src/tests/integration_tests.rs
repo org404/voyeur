@@ -457,3 +457,158 @@ fn test_suit_3() {
     })
 }
 
+
+/// Following test suit verifies API availability for the story below:
+///     - Create 3 different entries
+///     - Query one entry by partial content match
+///     - Update queried entry
+///     - Query two entries by partial content match
+#[test]
+fn test_suit_4() {
+    run_test!(|client, _conn| {
+        let test_id: u64;
+
+        {
+            // Creating 3 entries, with different contents
+            let r = client.post("/api/v1/entries?namespace=test_name_alpha").header(ContentType::JSON)
+                .body(
+                    "[{\"log\": \"error: bad uint32 value ***\"},
+                     {\"log\": \"success: everything is cool\"},
+                     {\"log\": \"error: failed to read body...\"}]"
+                ).dispatch().await;
+
+            // We expect 200 JSON response.
+            assert_eq!(r.content_type(), Some(ContentType::JSON));
+            assert_eq!(r.status(), Status::Ok);
+
+            let body = from_str::<Value>(&r.into_string().await.unwrap())
+                .expect("Failed to read request body as JSON..");
+            let code = body.get("code")
+                .expect("Expected response to contain 'code' field..")
+                .as_str().expect("Expected 'code' field to be a string..");
+
+            // Verify code matches successful 200 response code for this endpoint.
+            assert_eq!(code, "info_many_items_ok");
+
+            // Save id for later.
+            let ids = body.get("item_ids")
+                .expect("Expected response to contain 'item_ids' field..")
+                .as_array().expect("Failed to parse 'item_ids' as an array..");
+
+            // Verify that 3 items were created.
+            assert_eq!(ids.len(), 3);
+
+            // Save first id in a list to update later.
+            test_id = ids[0].as_u64().expect("Failed to parse 'item_ids[0]' as u64..");
+        }
+
+        {
+            // Query page of entries to verify partial quering ...
+            let r = client.get(
+                    "/api/v1/entries?page=0&namespace=test_name_alpha&query=bad%20uint32%20value"
+                ).header(ContentType::JSON).dispatch().await;
+
+            // We expect 200 JSON response.
+            assert_eq!(r.content_type(), Some(ContentType::JSON));
+            assert_eq!(r.status(), Status::Ok);
+
+            let body = from_str::<Value>(&r.into_string().await.unwrap())
+                .expect("Failed to read request body as JSON..");
+            let code = body.get("code")
+                .expect("Expected response to contain 'code' field..")
+                .as_str().expect("Expected 'code' field to be a string");
+            let data = body.get("data")
+                .expect("Expected response to contain 'data' field..")
+                .as_array().expect("Failed to parse 'data' as an array..");
+
+            // Verify code matches successful 200 response code for this endpoint.
+            assert_eq!(code, "no_message");
+            // Verify that one item was successfully deleted.
+            assert_eq!(data.len(), 1);
+
+            let id = data[0].get("id")
+                .expect("Expected response to contain 'id' field..")
+                .as_u64().expect("Failed to parse 'id' value as u64..");
+            // Verify we queried correct entry.
+            assert_eq!(id, test_id);
+
+            let log = data[0]
+                .get("content").expect("Expected response to contain 'content' field..")
+                .get("log").expect("Expected 'content' to contain 'text' field..")
+                .as_str().expect("Expected 'text' field to be a string..");
+            // Verify we queried correct entry.
+            assert_eq!(log, "error: bad uint32 value ***");
+        }
+
+        {
+            // Update previously queried entry ...
+            let r = client.put(format!("/api/v1/entries/{}?namespace=test_name_alpha", test_id)).header(ContentType::JSON)
+                .body("{\"log\": \"error: bad float32 value...\"}").dispatch().await;
+
+            // We expect 200 JSON response.
+            assert_eq!(r.content_type(), Some(ContentType::JSON));
+            assert_eq!(r.status(), Status::Ok);
+
+            let body = from_str::<Value>(&r.into_string().await.unwrap())
+                .expect("Failed to read request body as JSON..");
+            let code = body.get("code")
+                .expect("Expected response to contain 'code' field..")
+                .as_str().expect("Expected 'code' field to be a string..");
+
+            // Verify code matches successful 200 response code for this endpoint.
+            assert_eq!(code, "info_put_item_ok");
+        }
+
+        {
+            // Query page of entries to verify that partial quering works for multiple entries and that previous request worked ...
+            let r = client.get(
+                    "/api/v1/entries?page=0&namespace=test_name_alpha&query=error:%20"
+                ).header(ContentType::JSON).dispatch().await;
+
+            // We expect 200 JSON response.
+            assert_eq!(r.content_type(), Some(ContentType::JSON));
+            assert_eq!(r.status(), Status::Ok);
+
+            let body = from_str::<Value>(&r.into_string().await.unwrap())
+                .expect("Failed to read request body as JSON..");
+            let code = body.get("code")
+                .expect("Expected response to contain 'code' field..")
+                .as_str().expect("Expected 'code' field to be a string");
+            let data = body.get("data")
+                .expect("Expected response to contain 'data' field..")
+                .as_array().expect("Failed to parse 'data' as an array..");
+
+            // Verify code matches successful 200 response code for this endpoint.
+            assert_eq!(code, "no_message");
+            // Verify that one item was successfully deleted.
+            assert_eq!(data.len(), 2);
+
+            let id = data[0].get("id")
+                .expect("Expected response to contain 'id' field..")
+                .as_u64().expect("Failed to parse 'id' value as u64..");
+            // Verify we queried correct entry.
+            assert_eq!(id, test_id);
+
+            let log1 = data[0]
+                .get("content").expect("Expected response to contain 'content' field..")
+                .get("log").expect("Expected 'content' to contain 'text' field..")
+                .as_str().expect("Expected 'text' field to be a string..");
+            // Verify we queried correct entry.
+            assert_eq!(log1, "error: bad float32 value...");
+
+            let log2 = data[1]
+                .get("content").expect("Expected response to contain 'content' field..")
+                .get("log").expect("Expected 'content' to contain 'text' field..")
+                .as_str().expect("Expected 'text' field to be a string..");
+            // Verify we queried correct entry.
+            assert_eq!(log2, "error: failed to read body...");
+        }
+
+        // Note:
+        //     Macro deletes all existing entries on the start of the block, which
+        //     means we don't have to clear anything here. Unless, of course, we want
+        //     to test deletion here too.
+        //                                                         - andrew, May 11 2021
+    })
+}
+
