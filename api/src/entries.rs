@@ -32,6 +32,13 @@ pub async fn get_entry_by_id(namespace: Namespace, id: u64, conn: ApiDatabase) -
 }
 
 
+/// This endpoint is used to recieve a paginated JSON array of entries, filtered by some query.
+/// Filtering is done by checking whether content of the entry includes (i.e. partially matches)
+/// value of the filter. Entry is an object containing id and content, example: {"id": 4, "content":
+/// <your_json>}. For this endpoint you must provide namespace (url argument <namespace> or header
+/// "X-Namespace", of type <String>), page (url argument <page>, of type unsigned 32-bit integer),
+/// and query (url argument <query>, of type <String>) values. Optionally, you can specify a page
+/// size (url argument <page_size> or header "X-PAGE-SIZE", of type unsigned 16-bit integer).
 #[get("/?<page>&<query>", rank = 1)]
 pub async fn get_query_content(namespace: Namespace, query: String, page: u32, page_size: PageSize, conn: ApiDatabase) -> JsonValue {
     json!({
