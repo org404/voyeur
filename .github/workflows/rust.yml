@@ -27,7 +27,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - name: Launch Postgres
-      run: docker-compose -f postgres/docker-compose.yml up -d --build
+      working-directory: ./postgres
+      run: docker-compose up -d --build
 
     - name: Run test script
       working-directory: ./api
