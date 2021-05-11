@@ -19,9 +19,9 @@ jobs:
         default: true
         override: true
     
-    - name: Build debug binary
+    - name: Build binary including tests
       working-directory: ./api
-      run: cargo build
+      run: cargo build --tests
 
     - name: Launch Postgres
       working-directory: ./postgres
