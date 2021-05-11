@@ -19,7 +19,8 @@ jobs:
         override: true
     
     - name: Build
-      run: cd api && cargo build --verbose
+      working-directory: ./api
+      run: cargo build
   
   test:
     needs: build
@@ -27,5 +28,7 @@ jobs:
     steps:
     - name: Launch Postgres
       run: docker-compose up -f postgres/docker-compose.yml -d --build
+
     - name: Run test script
-      run: cd api && ./test.sh
+      working-directory: ./app
+      run: ./test.sh
