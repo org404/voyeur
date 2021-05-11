@@ -18,16 +18,9 @@ jobs:
         default: true
         override: true
     
-    - name: Build
+    - name: Build debug binary
       working-directory: ./api
       run: cargo build
-  
-  test:
-    needs: build
-    runs-on: ubuntu-latest
-    steps:
-    - name: test
-      run: pwd && ls -alhF
 
     - name: Launch Postgres
       working-directory: ./postgres
