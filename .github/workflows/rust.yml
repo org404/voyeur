@@ -1,0 +1,31 @@
+name: Rust
+
+on: [push]
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v1
+    
+    - name: Install latest nightly toolchain
+      uses: actions-rs/toolchain@v1
+      with:
+        toolchain: nightly
+        default: true
+        override: true
+    
+    - name: Build
+      run: cd api && cargo build --verbose
+  
+  test:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+    - name: Launch Postgres
+      run: docker-compose up -f postgres/docker-compose.yml -d --build
+    - name: Run test script
+      run: cd api && ./test.sh
